@@ -5,6 +5,7 @@
 [![GitHub release](https://img.shields.io/github/v/release/autentisitet/deep-vqa-framework?include_prereleases)](https://github.com/autentisitet/deep-vqa-framework/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS-blue)](https://github.com/autentisitet/deep-vqa-framework)
+[![Version](https://img.shields.io/badge/version-0.9.1--beta-blue.svg)](https://github.com/autentisitet/deep-vqa-framework)
 
 **A Unified Deep Learning Framework for Image Quality Assessment (IQA) and Video Quality Assessment (VQA).**
 
@@ -26,7 +27,7 @@ This framework provides an end-to-end solution for training, evaluating, and dep
 - [Configuration Guide](#configuration-guide)
 - [Troubleshooting](#troubleshooting)
 - [License](#license)
-- [Acknowledgements](#acknowledgements)
+- [Acknowledgements](#acknowledgments)
 
 ---
 
@@ -35,7 +36,7 @@ This framework provides an end-to-end solution for training, evaluating, and dep
 ### Hardware Requirements
 
 | Component | Minimum | Recommended |
-|-----------|---------|-------------|
+| ----------- | --------- | ------------- |
 | **GPU** | 8GB VRAM (IQA only) | 24GB+ VRAM (VQA training) |
 | **RAM** | 16GB | 32GB+ |
 | **Disk Space** | 50GB | 200GB+ (including datasets) |
@@ -44,7 +45,7 @@ This framework provides an end-to-end solution for training, evaluating, and dep
 ### Software Requirements
 
 | Component | Version | Notes |
-|-----------|---------|-------|
+| ----------- | --------- | ------- |
 | **OS** | Linux (Ubuntu 20.04+) / Windows 10+ / macOS 12+ | Linux recommended for training |
 | **Python** | 3.10 - 3.12 | 3.12+ not fully tested |
 | **CUDA** | 11.8 / 12.1 | Required for GPU training |
@@ -56,7 +57,7 @@ This framework provides an end-to-end solution for training, evaluating, and dep
 The framework expects datasets in the following structure:
 
 | Dataset | Size (Compressed) | Size (Extracted) |
-|---------|-------------------|-------------------|
+| --------- | ------------------- | ------------------- |
 | TID2013 | ~500MB | ~3GB |
 | KoNViD-1k | ~9GB | ~10GB |
 | T2VQA-DB | ~45GB | ~50GB+ |
@@ -65,7 +66,7 @@ The framework expects datasets in the following structure:
 ### Additional Space
 
 | Item | Estimated Size |
-|------|----------------|
+| ------ | ---------------- |
 | Python environment (uv/venv) | ~5GB |
 | Model checkpoints (5-fold) | ~10GB |
 | Training logs & plots | ~2GB |
@@ -412,8 +413,8 @@ Solution: Use Decord
 ```bash
 uv add decord
 ```
-Decord is pre-configured as the default backend. If Decord is not available, the framework automatically falls back to OpenCV, but on AutoDL this fallback may fail. Always use Decord for video training on AutoDL.
 
+Decord is pre-configured as the default backend. If Decord is not available, the framework automatically falls back to OpenCV, but on AutoDL this fallback may fail. Always use Decord for video training on AutoDL.
 
 ### Slow Training
 
@@ -429,11 +430,11 @@ Decord is pre-configured as the default backend. If Decord is not available, the
 
 - **Framework**: [MIT](LICENSE)
 - **Author**: [@autentisitet](https://github.com/autentisitet)
-- **Version**: 0.9.1 (pre-release)
+- **Version**: 0.9.1-beta (pre-release)
 
 ---
 
-## 🙏 Acknowledgments <a id="acknowledments"></a>
+## 🙏 Acknowledgments <a id="acknowledgments"></a>
 
 - PyTorch team for deep learning framework
 - Decord developers for efficient video loading
