@@ -16,6 +16,7 @@ checkup.md
 
 .venv/
 venv/
+.ruff_cache/
 .uv_cache/
 .cache/
 __pycache__/

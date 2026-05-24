@@ -3,16 +3,25 @@ PROJECT_NAME := Deep-VQA-Framework
 ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 $(shell [ -f "$(ROOT_DIR)/Makefile" ] || (echo "❌ Error: Makefile not found in ROOT_DIR"; exit 1))
 
-PYTHON_CMD := $(shell if [ -f "$(ROOT_DIR)/.venv/bin/python" ]; then echo "$(ROOT_DIR)/.venv/bin/python"; else echo "python3"; fi)
+# Automatically determine the operating system environment
+# The OS environment variable under Windows is usually Windows_NT
+ifeq ($(OS),Windows_NT)
+	PYTHON_CMD := $(shell if [ -f "$(ROOT_DIR)/.venv/Scripts/python.exe" ]; then echo "$(ROOT_DIR)/.venv/Scripts/python.exe"; else echo "python"; fi)
+else
+	PYTHON_CMD := $(shell if [ -f "$(ROOT_DIR)/.venv/bin/python" ]; then echo "$(ROOT_DIR)/.venv/bin/python"; else echo "python3"; fi)
+endif
+
 PYTHON := $(PYTHON_CMD)
 LOG_DIR := $(ROOT_DIR)/results/scripts_logs
 
 $(shell mkdir -p $(LOG_DIR))
 $(info 📂 Project Root detected as: $(ROOT_DIR))
-.PHONY: setup data link train check clean help optimize archive stop test
+.PHONY: setup data link train check \
+		clean help optimize archive stop test \
+		validate fmt typecheck
 
 # Make sure the first goal is to help
-# 	 When you type `make` directly in the terminal without any arguments,
+# When you type `make` directly in the terminal without any arguments,
 # it will automatically execute the first target that appears in the file.
 help:
 	@echo "🛠️  $(PROJECT_NAME) Commands:"
@@ -26,11 +35,14 @@ help:
 	@echo "  make optimize   - Optimize network/Jupyter settings"
 	@echo "  make archive    - Package results"
 	@echo "  make stop       - Stop training processes"
+	@echo "  make validate   - Validate code style and specifications"
+	@echo "	 make fmt        - Format code with ruff"
+	@echo "	 make typecheck   - Perform type checking with mypy"
 	@echo ""
 	@echo "💡 Tip: To customize training, e.g.:"
 	@echo "       make train DATASET=coco MODEL=vit_b DEBUG=1"
 	@echo ""
-	@echo "📁 Config file: ../config/base_config.yaml"
+	@echo "📁 Config files located in: $(PROJECT_NAME)/config/"
 
 
 # 1. Environment Initialization
@@ -153,3 +165,29 @@ stop:
 	@ps aux | grep "[s]rc.main" | awk '{print $$2}' | xargs kill -15 2>/dev/null || echo "No training process found"
 	@sleep 2
 	@ps aux | grep "[s]rc.main" | awk '{print $$2}' | xargs kill -9 2>/dev/null || echo "No training process found"
+
+
+# 10. Validate code style and specifications
+validate:
+	@echo "Verifying code style and specifications..."
+	@uv sync
+	@$(PYTHON) -m ruff format --check .
+	@$(PYTHON) -m ruff check .
+	@echo "Verification completed, code quality is good!"
+
+
+# 11. Format code with ruff
+fmt:
+	@echo "Formatting code..."
+	@uv sync
+	@$(PYTHON) -m ruff format .
+	@$(PYTHON) -m ruff check . --fix
+	@echo "Code formatted successfully!"
+
+
+# 12. Type checking with mypy
+typecheck:
+	@echo "Performing type checking with mypy..."
+	@uv sync
+	@$(PYTHON) -m mypy src/ --ignore-missing-imports
+	@echo "Type checking completed!"

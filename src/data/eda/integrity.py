@@ -1,8 +1,10 @@
 # src/data/eda/integrity.py
-import numpy as np
 from pathlib import Path
-from typing import Tuple, Optional, Dict
+from typing import Dict, Optional, Tuple
+
+import numpy as np
 from loguru import logger
+
 from src.data.types import DatasetType
 
 # TODO:
@@ -13,10 +15,10 @@ from src.data.types import DatasetType
 # Attempt to import Decord, fall back to OpenCV if it fails
 try:
     from decord import VideoReader, cpu
+
     DECORD_AVAILABLE = True
     logger.info("✅ Video processing using Decord (high-performance mode)")
 except ImportError:
-    import cv2
     DECORD_AVAILABLE = False
     logger.warning("⚠️ Decord is not installed; revert to OpenCV (lower performance).")
 
@@ -40,7 +42,7 @@ def check_video_integrity_decord(path: Path, sample_interval: int = 30) -> Tuple
         "actual_frames": 0,
         "fps": 0,
         "resolution": (0, 0),
-        "duration_sec": 0
+        "duration_sec": 0,
     }
 
     try:
@@ -85,7 +87,7 @@ def check_video_integrity_decord(path: Path, sample_interval: int = 30) -> Tuple
 
                 prev_frame = gray
 
-            except Exception as e:
+            except Exception:
                 consecutive_fail += 1
                 if consecutive_fail > 5:
                     return False, f"Continuous reads failed at frame {idx}", diagnostics
@@ -119,11 +121,8 @@ def check_video_integrity_fallback(path: Path, sample_interval: int = 30) -> Tup
         "black_frames": 0,
         "actual_frames": 0,
         "fps": cap.get(cv2.CAP_PROP_FPS),
-        "resolution": (
-            int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
-            int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        ),
-        "duration_sec": 0
+        "resolution": (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))),
+        "duration_sec": 0,
     }
 
     if diagnostics["fps"] > 0:
@@ -169,7 +168,7 @@ def check_video_integrity_fallback(path: Path, sample_interval: int = 30) -> Tup
 
     # Check frame count matching
     if abs(diagnostics["actual_frames"] - diagnostics["frame_count"]) > diagnostics["frame_count"] * 0.1:
-        return False, f"Frame rate mismatch", diagnostics
+        return False, "Frame rate mismatch", diagnostics
 
     sample_count = max(1, diagnostics["frame_count"] // sample_interval)
     bad_ratio = diagnostics["bad_frames"] / sample_count
@@ -195,6 +194,7 @@ def check_image_integrity(path: Path) -> Tuple[bool, Optional[str], Dict]:
     """Check image integrity"""
     try:
         import cv2
+
         img = cv2.imread(str(path))
         if img is None:
             return False, "Unable to decode"

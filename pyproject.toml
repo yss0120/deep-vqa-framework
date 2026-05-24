@@ -5,7 +5,6 @@ requires-python = ">=3.12"
 dependencies = [
     "decord>=0.6.0",
     "gdown>=6.0.0",
-    "git-filter-repo>=2.47.0",
     "loguru>=0.7.3",
     "matplotlib>=3.10.9",
     "numpy>=2.4.4",
@@ -21,3 +20,26 @@ dependencies = [
     "torchvision>=0.27.0",
     "tqdm>=4.67.3",
 ]
+
+[dependency-groups]
+dev = [
+    "mypy>=2.1.0",
+    "ruff>=0.15.14",
+    "types-pyyaml>=6.0.12.20260518",
+    "types-tqdm>=4.67.3.20260518",
+]
+
+[tool.ruff]
+line-length = 160
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = []
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

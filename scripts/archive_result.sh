@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # --- archive_results.sh ---
 # Description: Industrial-grade archiving tool aligned with results/ five subdomains
 

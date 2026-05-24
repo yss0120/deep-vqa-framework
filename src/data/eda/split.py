@@ -1,24 +1,17 @@
 # src/data/eda/split.py
-import pandas as pd
-from sklearn.model_selection import StratifiedKFold, train_test_split
-from typing import Tuple, List, Dict
-from loguru import logger
+from typing import Dict, List, Tuple
 
+import pandas as pd
+from loguru import logger
+from sklearn.model_selection import StratifiedKFold, train_test_split
 
 # TODO:
 # 按照dataset_config.yaml的数据集划分kv，划分数据集
 # 对trainset、valset、testset分层K折交叉验证: 5折 (Notes: 检查每折的分数分布是否一致)
 
 
-
-
-#NOTE：这部分实参到时候利用src.data.eda里面的method实现，而不是使用src.utils.config里面的函数
-def split_train_val_test(
-    df,
-    train_ratio: float = 0.8,
-    val_ratio: float = 0.1,
-    random_state: int = 42
-) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+# NOTE：这部分实参到时候利用src.data.eda里面的method实现，而不是使用src.utils.config里面的函数
+def split_train_val_test(df, train_ratio: float = 0.8, val_ratio: float = 0.1, random_state: int = 42) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     划分训练/验证/测试集（分层采样）
 
@@ -40,12 +33,7 @@ def split_train_val_test(
     stratify_labels = create_stratified_labels(df)
 
     # 第一次划分：分出测试集
-    train_val, test = train_test_split(
-        df,
-        test_size=test_ratio,
-        random_state=random_state,
-        stratify=stratify_labels
-    )
+    train_val, test = train_test_split(df, test_size=test_ratio, random_state=random_state, stratify=stratify_labels)
 
     # 第二次划分：从 train_val 中分出验证集
     relative_val_ratio = val_ratio / (train_ratio + val_ratio)
@@ -53,12 +41,10 @@ def split_train_val_test(
         train_val,
         test_size=relative_val_ratio,
         random_state=random_state,
-        stratify=stratify_labels.iloc[train_val.index]
+        stratify=stratify_labels.iloc[train_val.index],
     )
 
     return train, val, test
-
-
 
 
 def create_stratified_labels(df, bins: int = 10):
@@ -67,18 +53,13 @@ def create_stratified_labels(df, bins: int = 10):
     优先使用分位数，失败时回退到均匀分箱
     """
     try:
-        return pd.qcut(df['mos'], q=bins, labels=False, duplicates='drop')
+        return pd.qcut(df["mos"], q=bins, labels=False, duplicates="drop")
     except Exception:
-        logger.debug(f"分位数切分失败，回退到均匀分箱")
-        return pd.cut(df['mos'], bins=bins, labels=False)
+        logger.debug("分位数切分失败，回退到均匀分箱")
+        return pd.cut(df["mos"], bins=bins, labels=False)
 
 
-def check_fold_distribution(
-    df,
-    n_splits: int = 5,
-    random_state: int = 42,
-    verbose: bool = True
-) -> List[Dict]:
+def check_fold_distribution(df, n_splits: int = 5, random_state: int = 42, verbose: bool = True) -> List[Dict]:
     """
     检查K折分布
 
@@ -99,18 +80,12 @@ def check_fold_distribution(
 
     fold_stats = []
     for fold, (train_idx, val_idx) in enumerate(skf.split(df, stratify_labels)):
-        train_m = df.iloc[train_idx]['mos'].mean()
-        val_m = df.iloc[val_idx]['mos'].mean()
-        train_s = df.iloc[train_idx]['mos'].std()
-        val_s = df.iloc[val_idx]['mos'].std()
+        train_m = df.iloc[train_idx]["mos"].mean()
+        val_m = df.iloc[val_idx]["mos"].mean()
+        train_s = df.iloc[train_idx]["mos"].std()
+        val_s = df.iloc[val_idx]["mos"].std()
 
-        fold_stats.append({
-            'fold': fold,
-            'train_mean': train_m,
-            'val_mean': val_m,
-            'train_std': train_s,
-            'val_std': val_s
-        })
+        fold_stats.append({"fold": fold, "train_mean": train_m, "val_mean": val_m, "train_std": train_s, "val_std": val_s})
 
     if verbose:
         logger.info(f"Cross-Validation -> Stratified {n_splits}-Fold distribution checked")

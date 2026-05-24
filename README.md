@@ -4,8 +4,8 @@
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-red.svg)](https://pytorch.org/)
 [![GitHub release](https://img.shields.io/github/v/release/autentisitet/deep-vqa-framework?include_prereleases)](https://github.com/autentisitet/deep-vqa-framework/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS-blue)](https://github.com/autentisitet/deep-vqa-framework)
 [![Version](https://img.shields.io/badge/version-0.9.2--beta-blue.svg)](https://github.com/autentisitet/deep-vqa-framework)
+[![Code style: ruff](https://img.shields.io/badge/ruff-⭐-purple)](https://github.com/astral-sh/ruff)
 
 **A Unified Deep Learning Framework for Image Quality Assessment (IQA) and Video Quality Assessment (VQA).**
 
@@ -141,56 +141,23 @@ Total Loss = 0.7 × MSE + 0.3 × Rank Loss
 
 ### Quick Start Training
 
-#### Step 1: Create symbolic links
+#### Step 1: Initialize Paths
 
 ```bash
 make link
 ```
 
-or you can:
+#### Step 2: Training Commands
 
-```bash
-cd scripts
-bash setup_links.sh
-```
+You can choose between running the direct uv command or using the make wrapper.
 
-#### Step 2: Run training
+| Dataset | Model | uv Command | make Command |
+| :-------- | :------ | :----------- | :------------- |
+| TID2013 | `resnet_iqa` | `uv run python -m src.main --model resnet_iqa --dataset tid2013` | `make train DATASET=tid2013 MODEL=resnet_iqa` |
+| KoNViD-1k | `timeswin_vqa` | `uv run python -m src.main --model timeswin_vqa --dataset konvid-1k` | `make train DATASET=konvid-1k MODEL=timeswin_vqa` |
+| T2VQA-DB | `resnet_vqa` | `uv run python -m src.main --model resnet_vqa --dataset t2vqa-db` | `make train DATASET=t2vqa-db MODEL=resnet_vqa` |
 
-- **Image Dataset (TID2013)**
-
-```bash
-uv run python -m src.main --model resnet_iqa --dataset tid2013
-```
-
-or you can:
-
-```bash
-make train DATASET=tid2013 MODEL=resnet_iqa DEBUG=0
-```
-
-- **Video Dataset (KoNViD-1k)**
-
-```bash
-uv run python -m src.main --model timeswin_vqa --dataset konvid-1k
-```
-
-or you can:
-
-```bash
-make train DATASET=konvid-1k MODEL=timeswin_vqa DEBUG=0
-```
-
-- **Video Dataset (T2VQA-DB)**
-
-```bash
-uv run python -m src.main --model resnet_vqa --dataset t2vqa-db
-```
-
-or you can:
-
-```bash
-make train DATASET=t2vqa-db MODEL=resnet_vqa DEBUG=0
-```
+*Note: By default, DEBUG=0 is applied in make commands. You can override it by appending DEBUG=1 if needed.*
 
 ### Configuration Parameters
 
@@ -219,42 +186,40 @@ train:
 
 ### Advanced Options
 
-- **Fast Smoke Test**
+You can extend the framework capabilities using the following training and debugging modes:
+
+| Mode | Use Case | uv / Shell Command | make Wrapper |
+| :----- | :--------- | :------------------- | :------------- |
+| **Smoke Test** | Quick functionality check | `uv run python -m src.main --smoke_test` | `make test` |
+| **Debug Mode** | Enable breakpoints & verbose logs | `LOG_LEVEL=DEBUG uv run python -m src.main` | `make train DEBUG=1` |
+| **Background** | Run on remote server persistently | `nohup uv run python -m src.main > results/scripts_logs/train.log 2>&1 &` | `make train` |
+
+## Detailed Execution
+
+- **Smoke Test**: Executes a single epoch with minimal data to verify pipeline integrity. Ideal for CI/CD or validating changes.
 
 ```bash
-uv run python -m src.main --model resnet_iqa --dataset tid2013 --smoke_test
+uv run python -m src.main --smoke_test
 ```
 
-or you can:
+- **Debug Mode**: Runs with LOG_LEVEL=DEBUG to enable verbose logging and debugger breakpoints. Useful for troubleshooting.
 
 ```bash
-make test DATASET=tid2013 MODEL=resnet_iqa
+LOG_LEVEL=DEBUG uv run python -m src.main
 ```
 
-- **Debug Mode (with breakpoints)**
+- **Background Training**: Uses nohup to ensure training continues after terminal closure. Output is redirected to results/scripts_logs/train.log.
 
 ```bash
-LOG_LEVEL=DEBUG uv run python -m src.main --model resnet_iqa --dataset tid2013
+nohup uv run python -m src.main > results/scripts_logs/train.log 2>&1 &
 ```
 
-or you can:
-
-```bash
-make train DATASET=tid2013 MODEL=resnet_iqa DEBUG=1
-```
-
-- **Background Training**
-
-```bash
-nohup python -m src.main --model resnet_vqa --dataset t2vqa-db > results/scripts_logs/train.log 2>&1 &
-tail -f results/scripts_logs/train.log
-```
-
-or you can:
-
-```bash
-make train DATASET=t2vqa-db MODEL=resnet_vqa DEBUG=1
-```
+> [!TIP]
+> Monitor real-time training progress with:
+>
+> ```bash
+> tail -f results/scripts_logs/train.log
+> ```
 
 ---
 
@@ -269,12 +234,6 @@ make train DATASET=t2vqa-db MODEL=resnet_vqa DEBUG=1
 | **KROCC** | Kendall Rank Correlation Coefficient | Ordinal agreement |
 | **RMSE** | Root Mean Square Error | Prediction error magnitude |
 | **R²** | Coefficient of Determination | Variance explained |
-
-### Output Example
-
-```text
-📊 [Epoch 050 | HYPERIQANET] PLCC: 0.9696 | SROCC: 0.9689 | RMSE: 0.0442 | R²: 0.9314
-```
 
 ### Visualizations
 
@@ -442,5 +401,7 @@ Decord is pre-configured as the default backend. If Decord is not available, the
 For details regarding third-party tool usage, dataset compliance, and resource usage, please refer to the [DISCLAIMER.md](DISCLAIMER.md) file.
 
 ---
+
+For detailed contribution guidelines and issue reporting, please check the .github folder.
 
 **Built with ❤️ for the research community**

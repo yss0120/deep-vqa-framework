@@ -140,8 +140,7 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 PROJECT_PARENT_DIR="$(dirname "$PROJECT_DIR")"
 DETECTED_PATH="${PROJECT_DIR}/datasets"
 
-rm -f "$PROJECT_DIR/pyproject.toml" "$PROJECT_DIR/uv.lock" "$PROJECT_DIR/.python-version"
-rm -rf "$PROJECT_DIR/.venv"
+
 mkdir -p "$PROJECT_DIR"
 mkdir -p "$DETECTED_PATH"
 
@@ -205,14 +204,19 @@ uv python pin 3.12      # Lock the python version
 
 
 if command -v nvidia-smi &> /dev/null; then
-    echo "Detected GPU, installing CUDA-enabled torch..."
-    uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+    echo "✔ Detected GPU: Configuring CUDA-enabled torch."
+    TORCH_INDEX="https://download.pytorch.org/whl/cu121"
 else
-    echo "Detected CPU only, installing standard torch..."
-    uv pip install torch torchvision torchaudio
+    echo "⚠ Detected CPU only: Configuring standard torch."
+    TORCH_INDEX="https://download.pytorch.org/whl/cpu"
 fi
-uv add "${UV_PACKAGES[@]}" --no-sync
-uv sync --project ./pyproject.toml --jobs 2
+
+echo "Syncing dependencies..."
+if [ ${#UV_PACKAGES[@]} -gt 0 ]; then
+    uv add "${UV_PACKAGES[@]}" --no-sync || { echo "Failed to add packages"; exit 1; }
+fi
+uv sync --extra-index-url "$TORCH_INDEX" --no-dev --jobs 2
+
 
 # Non-intrusive configuration apt mirror source
 [ -n "$TEMP_SOURCES" ] && [ -f "$TEMP_SOURCES" ] && rm -f "$TEMP_SOURCES"

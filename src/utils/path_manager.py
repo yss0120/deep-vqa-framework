@@ -1,7 +1,7 @@
-import os
-import yaml
+import pdb
 from pathlib import Path
-from typing import Optional
+
+import yaml
 from loguru import logger
 
 
@@ -21,20 +21,12 @@ class PathManager:
 
     except FileNotFoundError:
         raise RuntimeError(
-            f"[PathManager] 路径配置文件不存在: {PathManager._CONFIG_FILE}\n"
-            f"   请确保项目根目录下有 config/paths.yaml 文件\n"
-            f"   当前项目根目录: {PathManager._PROJECT_ROOT}"
+            f"[PathManager] 路径配置文件不存在: {_CONFIG_FILE}\n   请确保项目根目录下有 config/paths.yaml 文件\n   当前项目根目录: {_PROJECT_ROOT}"
         )
     except yaml.YAMLError as e:
-        raise RuntimeError(
-            f"[PathManager] paths.yaml 格式错误: {PathManager._CONFIG_FILE}\n"
-            f"   错误详情: {e}\n"
-            f"   请检查 YAML 语法，特别是缩进和特殊字符"
-        )
+        raise RuntimeError(f"[PathManager] paths.yaml 格式错误: {_CONFIG_FILE}\n   错误详情: {e}\n   请检查 YAML 语法，特别是缩进和特殊字符")
     except Exception as e:
         raise RuntimeError(f"[PathManager] 加载路径配置失败: {e}")
-
-
 
     @classmethod
     def resolve(cls, key: str, mkdir: bool = False, **kwargs) -> Path:
@@ -49,8 +41,6 @@ class PathManager:
             logger.debug(f"[PathManager] 可用的 keys: {available}")
             # Help: 检查 paths.yaml 中的 resolvers 字段是否包含此 key
             raise KeyError(f"Key '{key}' not found. Available: {available}")
-
-
 
         # 💎【核心修复】：这里是关键！
         # 我们创建一个临时字典，把 roots 里的每一项“摊平”解包出来。
@@ -67,7 +57,6 @@ class PathManager:
             # Help: 对比 kwargs 和模板中的 {变量名}
             raise KeyError(f"❌ 路径模板 '{template}' 中缺少必要的变量: {e}")
 
-
         # 3. 强行锚定在项目根目录下，并转换为绝对路径，彻底消除“相对路径漂移”
         final_path = (cls._PROJECT_ROOT / path_str).resolve()
         logger.debug(f"🔍 [PathManager] Resolved '{key}' to: {final_path}")
@@ -76,7 +65,7 @@ class PathManager:
         if mkdir:
             try:
                 final_path.mkdir(parents=True, exist_ok=True)
-            except PermissionError as e:
+            except PermissionError:
                 logger.error(f"❌ 权限不足，无法创建目录: {final_path}")
                 # Help: 检查目录权限
                 pdb.set_trace()

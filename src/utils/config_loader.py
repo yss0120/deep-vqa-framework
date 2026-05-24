@@ -1,9 +1,10 @@
 # src/utils/config_loader.py
-import yaml
-from pathlib import Path
-from loguru import logger
 from collections.abc import Mapping
-import pdb
+from pathlib import Path
+
+import yaml
+from loguru import logger
+
 
 # Automatically scan config/models/*.yaml
 def discover_models(config_dir: Path) -> dict:
@@ -19,8 +20,8 @@ def discover_models(config_dir: Path) -> dict:
         model_map[model_name] = f"models/{yaml_file.name}"
     return model_map
 
-MODEL_MAP = None  # Lazy loading
 
+MODEL_MAP = None  # Lazy loading
 
 
 def get_model_map(config_dir: Path) -> dict:
@@ -28,12 +29,8 @@ def get_model_map(config_dir: Path) -> dict:
     if MODEL_MAP is None:
         MODEL_MAP = discover_models(config_dir)
         # Manual mapping as backup
-        MODEL_MAP.update({
-            'resnet_iqa': 'models/resnet_iqa.yaml',
-            'timeswin_vqa': 'models/timeswin_vqa.yaml'
-        })
+        MODEL_MAP.update({"resnet_iqa": "models/resnet_iqa.yaml", "timeswin_vqa": "models/timeswin_vqa.yaml"})
     return MODEL_MAP
-
 
 
 def deep_update(source, overrides):
@@ -46,11 +43,10 @@ def deep_update(source, overrides):
     return source
 
 
-
 def safe_load_yaml(path: Path, description: str = "configuration file") -> dict:
     """Safely load YAML files, throw an exception on failure."""
     try:
-        with open(path, 'r', encoding='utf-8') as f:
+        with open(path, "r", encoding="utf-8") as f:
             content = yaml.safe_load(f)
             if content is None:
                 raise ValueError(f"{description} is empty: {path}")
@@ -68,8 +64,6 @@ def safe_load_yaml(path: Path, description: str = "configuration file") -> dict:
         raise
 
 
-
-
 def load_system_config(model_cfg_name: str, dataset_name: str) -> dict:
     config_dir = Path("config")
 
@@ -80,12 +74,12 @@ def load_system_config(model_cfg_name: str, dataset_name: str) -> dict:
     # 2. Load model configuration
     model_key = str(model_cfg_name).strip().lower()
     model_map = get_model_map(config_dir)
-    target_model_file = model_map.get(model_key, 'models/resnet_iqa.yaml')
+    target_model_file = model_map.get(model_key, "models/resnet_iqa.yaml")
     model_path = config_dir / target_model_file
 
     if not model_path.exists():
         logger.warning(f"⚠️ Model config [{model_path}] not found. Falling back to resnet_iqa.yaml")
-        model_path = config_dir / 'models/resnet_iqa.yaml
+        model_path = config_dir / "models/resnet_iqa.yaml"
 
     model_config = safe_load_yaml(model_path, f"Model configuration file [{model_key}]")
     config = deep_update(config, model_config)
@@ -101,17 +95,16 @@ def load_system_config(model_cfg_name: str, dataset_name: str) -> dict:
         available = list(ds_all.keys())
         logger.error(f"❌ Dataset '{dataset_name}' not found in dataset_config.yaml")
         logger.info(f"   Available datasets: {available}")
-        debug_breakpoint()
+        breakpoint()
         raise KeyError(f"Dataset settings for '{dataset_name}' missing. Available: {available}")
 
     dataset_info = ds_all_lowered[target_ds_key]
 
     # Command-line arguments are prioritized; the name in YAML is not used.
-    config['dataset_info'] = dataset_info
-    config['dataset_name'] = dataset_name.lower()  # Command line arguments to lowercase
+    config["dataset_info"] = dataset_info
+    config["dataset_name"] = dataset_name.lower()  # Command line arguments to lowercase
 
-    logger.info(f"⚙️ [Config Engine] Layered configuration successfully built for "
-                f"Model [{model_key}] & Dataset [{config['dataset_name']}]")
+    logger.info(f"⚙️ [Config Engine] Layered configuration successfully built for Model [{model_key}] & Dataset [{config['dataset_name']}]")
 
     logger.debug(f"[Config] Model configuration: {model_key}, Dataset: {config['dataset_name']}")
     logger.debug(f"[Config] Training configuration: epochs={config.get('train', {}).get('epochs', 'N/A')}")

@@ -2,9 +2,11 @@
 import atexit
 import sys
 import time
-from pathlib import Path
 from functools import wraps
+from pathlib import Path
+
 from loguru import logger
+
 
 def _csv_safe_patcher(record):
     """
@@ -21,14 +23,12 @@ def _csv_safe_patcher(record):
     record["extra"]["csv_message"] = msg
 
 
-
 def on_exit():
     # The logger can still log normally even if the program exits abnormally.
     if sys.exc_info()[0]:
         logger.error(f"⚠️ [System] The training pipeline terminated abnormally: {sys.exc_info()[1]}")
     else:
         logger.info("✅ [System] The training pipeline has been successfully completed.")
-
 
 
 def log_prepare(model_name: str = "resnet50", dataset_name: str = "TID2013"):
@@ -44,16 +44,8 @@ def log_prepare(model_name: str = "resnet50", dataset_name: str = "TID2013"):
     logger.configure(patcher=_csv_safe_patcher)
 
     # Configure the console output: simplified, high-definition, and non-disruptive (tqdm)
-    console_format = (
-        "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "
-        "<level>{level: <5}</level> | "
-        "<cyan>{name}:{function}:{line}</cyan> - <level>{message}</level>"
-    )
-    logger.add(
-        sys.stderr,
-        level="INFO",
-        format=console_format
-    )
+    console_format = "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <5}</level> | <cyan>{name}:{function}:{line}</cyan> - <level>{message}</level>"
+    logger.add(sys.stderr, level="INFO", format=console_format)
 
     log_dir = PROJECT_ROOT / "results" / "train_logs"
     log_dir.mkdir(parents=True, exist_ok=True)
@@ -64,18 +56,10 @@ def log_prepare(model_name: str = "resnet50", dataset_name: str = "TID2013"):
 
     # Redirect the output stream to a standard .log - retain full debug details
     file_format = "{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <5} | {name}:{function}:{line} - {message}"
-    logger.add(
-        log_dir / f"{base_filename}.log",
-        rotation="500 MB",
-        level="DEBUG",
-        format=file_format,
-        encoding="utf-8"
-    )
-
-
+    logger.add(log_dir / f"{base_filename}.log", rotation="500 MB", level="DEBUG", format=file_format, encoding="utf-8")
 
     # Formatted output to CSV log
-    csv_format = "{time:YYYY-MM-DD HH:mm:ss.SSS},{level},{name},{function},{line},\"{extra[csv_message]}\""
+    csv_format = '{time:YYYY-MM-DD HH:mm:ss.SSS},{level},{name},{function},{line},"{extra[csv_message]}"'
     csv_header = "timestamp,level,module,function,line,message\n"
     csv_path = log_dir / f"{base_filename}.csv"
 
@@ -90,15 +74,9 @@ def log_prepare(model_name: str = "resnet50", dataset_name: str = "TID2013"):
             f.write(csv_header)
 
     # Add CSV log output
-    logger.add(
-        csv_path,
-        rotation=csv_rotation_callback,
-        level="DEBUG",
-        format=csv_format,
-        encoding="utf-8"
-    )
+    logger.add(csv_path, rotation=csv_rotation_callback, level="DEBUG", format=csv_format, encoding="utf-8")
 
-    logger.info(f"⚙️  [System] Log system initialization complete.")
+    logger.info("⚙️  [System] Log system initialization complete.")
     logger.info(f"📁 [Outputs] TXT text log: results/logs/{base_filename}.log")
     logger.info(f"📁 [Outputs] CSV chart log: results/logs/{base_filename}.csv")
 
@@ -106,16 +84,17 @@ def log_prepare(model_name: str = "resnet50", dataset_name: str = "TID2013"):
     return base_filename
 
 
-
 def time_it(func):
     """Execution time of statistical functions"""
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         start_time = time.perf_counter()
         result = func(*args, **kwargs)
         end_time = time.perf_counter()
 
-        module_name = func.__module__.split('.')[-1]
+        module_name = func.__module__.split(".")[-1]
         logger.info(f"⏱️  [Timer] [{module_name}] Execution time for {func.__name__}: {end_time - start_time:.4f} seconds")
         return result
+
     return wrapper

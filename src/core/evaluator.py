@@ -1,17 +1,20 @@
+import time
 from pathlib import Path
+from typing import Any, Union
+
 import numpy as np
 import pandas as pd
-import time
 import torch
-from scipy.stats import spearmanr, pearsonr, kendalltau
-from sklearn.metrics import mean_squared_error, r2_score
 from loguru import logger
-from typing import Dict, Any, Union, List, Optional
+from scipy.stats import kendalltau, pearsonr, spearmanr
+from sklearn.metrics import mean_squared_error, r2_score
+
 
 class Evaluator:
     """
     Calculate evaluation metrics such as PLCC and SROCC, and save prediction results and historical records.
     """
+
     _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
     def __init__(self, task_type: str = "iqa", model_name: str = "resnet50", version: str = "v1"):
@@ -40,7 +43,7 @@ class Evaluator:
         self._base_filename = new_name
 
         # Keep the directory unchanged, only cascade file name refresh
-        if hasattr(self, '_history_path'):
+        if hasattr(self, "_history_path"):
             self._history_path = self.logs_dir / f"{new_name}_history.csv"
             self._manifest_path = self.logs_dir / f"{new_name}_manifest.csv"
             logger.debug(f"🔄 [Evaluator] Update file path -> {self._history_path.name}")
@@ -63,7 +66,16 @@ class Evaluator:
         self._manifest_path = Path(path)
         self._manifest_path.parent.mkdir(parents=True, exist_ok=True)
 
-    def execute(self, y_true, y_pred, epoch: int = None, train_loss: float = None, val_loss: float = None, traditional_metrics: dict = None, save_manifest: bool = False) -> dict:
+    def execute(
+        self,
+        y_true,
+        y_pred,
+        epoch: int = None,
+        train_loss: float = None,
+        val_loss: float = None,
+        traditional_metrics: dict = None,
+        save_manifest: bool = False,
+    ) -> dict:
         """
         Calculate metrics, save historical records and forecast results
         """
@@ -74,11 +86,11 @@ class Evaluator:
         metrics = self._compute_metrics(y_true, y_pred)
 
         if epoch is not None:
-            metrics['epoch'] = epoch
+            metrics["epoch"] = epoch
         if train_loss is not None:
-            metrics['train_loss'] = round(float(train_loss), 6)
+            metrics["train_loss"] = round(float(train_loss), 6)
         if val_loss is not None:
-            metrics['val_loss'] = round(float(val_loss), 6)
+            metrics["val_loss"] = round(float(val_loss), 6)
 
         epoch_str = f"Epoch {epoch:03d} | " if epoch is not None else "Final Eval | "
         loss_str = f"TrainLoss: {train_loss:.4f} | ValLoss: {val_loss:.4f} | " if train_loss is not None else ""
@@ -97,9 +109,16 @@ class Evaluator:
 
         return metrics
 
-
-
-    def evaluate(self, y_true, y_pred, epoch: int = None, train_loss: float = None, val_loss: float = None, traditional_metrics: dict = None, save_manifest: bool = False) -> dict:
+    def evaluate(
+        self,
+        y_true,
+        y_pred,
+        epoch: int = None,
+        train_loss: float = None,
+        val_loss: float = None,
+        traditional_metrics: dict = None,
+        save_manifest: bool = False,
+    ) -> dict:
         """Compatible with TrainerEngine API"""
         return self.execute(
             y_true=y_true,
@@ -108,10 +127,8 @@ class Evaluator:
             train_loss=train_loss,
             val_loss=val_loss,
             traditional_metrics=traditional_metrics,
-            save_manifest=save_manifest
+            save_manifest=save_manifest,
         )
-
-
 
     def _to_clean_numpy(self, data: Any) -> np.ndarray:
         """Convert Tensor/List to NumPy array"""
@@ -126,12 +143,10 @@ class Evaluator:
             return data
         return np.array(data)
 
-
-
     def _compute_metrics(self, y_true, y_pred) -> dict:
         """Calculate PLCC, SROCC and other metrics, and handle boundary conditions such as all-zero input."""
         if len(y_true) == 0 or len(y_pred) == 0:
-            return {'plcc': 0.0, 'srocc': 0.0, 'krocc': 0.0, 'rmse': 0.0, 'r2': 0.0, 'mae': 0.0}
+            return {"plcc": 0.0, "srocc": 0.0, "krocc": 0.0, "rmse": 0.0, "r2": 0.0, "mae": 0.0}
 
         rmse = np.sqrt(mean_squared_error(y_true, y_pred))
         r2 = r2_score(y_true, y_pred) if len(y_true) > 1 else 0.0
@@ -146,21 +161,19 @@ class Evaluator:
             krocc, _ = kendalltau(y_true, y_pred)
 
         return {
-            'plcc': round(float(np.nan_to_num(plcc)), 6),
-            'srocc': round(float(np.nan_to_num(srocc)), 6),
-            'krocc': round(float(np.nan_to_num(krocc)), 6),
-            'rmse': round(float(np.nan_to_num(rmse)), 6),
-            'r2': round(float(np.nan_to_num(r2)), 6),
-            'mae': round(float(np.nan_to_num(mae)), 6),
+            "plcc": round(float(np.nan_to_num(plcc)), 6),
+            "srocc": round(float(np.nan_to_num(srocc)), 6),
+            "krocc": round(float(np.nan_to_num(krocc)), 6),
+            "rmse": round(float(np.nan_to_num(rmse)), 6),
+            "r2": round(float(np.nan_to_num(r2)), 6),
+            "mae": round(float(np.nan_to_num(mae)), 6),
         }
-
-
 
     def _save_history(self, metrics: dict):
         """Save the training metrics for each round, and only retain the latest record for the same epoch."""
         df_new = pd.DataFrame([metrics])
 
-        front_cols = [c for c in ['epoch', 'train_loss', 'val_loss'] if c in df_new.columns]
+        front_cols = [c for c in ["epoch", "train_loss", "val_loss"] if c in df_new.columns]
         other_cols = [c for c in df_new.columns if c not in front_cols]
         df_new = df_new[front_cols + other_cols]
 
@@ -168,22 +181,17 @@ class Evaluator:
             try:
                 df_existing = pd.read_csv(self._history_path)
                 df_combined = pd.concat([df_existing, df_new], ignore_index=True)
-                if 'epoch' in df_combined.columns:
-                    df_combined.drop_duplicates(subset=['epoch'], keep='last', inplace=True)
+                if "epoch" in df_combined.columns:
+                    df_combined.drop_duplicates(subset=["epoch"], keep="last", inplace=True)
                 df_combined.to_csv(self._history_path, index=False)
             except Exception as e:
                 logger.error(f"❌ Failed to append history CSV: {e}")
         else:
             df_new.to_csv(self._history_path, index=False)
 
-
-
     def _save_manifest(self, y_true, y_pred, traditional_metrics: dict = None):
         """Save the predicted and actual values for subsequent analysis."""
-        manifest_data = {
-            'true': y_true,
-            'pred': y_pred
-        }
+        manifest_data = {"true": y_true, "pred": y_pred}
 
         # Convert traditional metrics to NumPy
         if traditional_metrics and isinstance(traditional_metrics, dict):

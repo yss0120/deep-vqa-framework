@@ -1,15 +1,13 @@
 # src/data/eda/statistics.py
+
 import cv2
-from pathlib import Path
-from typing import List, Tuple
-from loguru import logger
 
 # TODO:
 # 输出dataset的imgs/videos总数、分辨率范围、尺寸大小、颜色空间
 # 输出MOS/DMOS分布
 
 
-def analyze_image_properties(sample_paths, sample_limit:int = 50) -> dict:
+def analyze_image_properties(sample_paths, sample_limit: int = 50) -> dict:
     """
     分析图像属性（分辨率统计）
 
@@ -35,10 +33,9 @@ def analyze_image_properties(sample_paths, sample_limit:int = 50) -> dict:
         return {
             "total_files": len(sample_paths),
             "min_resolution": (min(widths), min(heights)),
-            "max_resolution": (max(widths), max(heights))
+            "max_resolution": (max(widths), max(heights)),
         }
     return {}
-
 
 
 def analyze_video_properties(video_paths: list) -> dict:
@@ -70,21 +67,14 @@ def analyze_video_properties(video_paths: list) -> dict:
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     cap.release()
-    return {
-        "total_files": len(video_paths),
-        "fps": fps,
-        "frame_count": frame_count,
-        "width": width,
-        "height": height
-    }
-
+    return {"total_files": len(video_paths), "fps": fps, "frame_count": frame_count, "width": width, "height": height}
 
 
 def compute_mos_statistics(df) -> dict:
     """计算MOS统计信息"""
     return {
         "total_samples": len(df),
-        "mos_range": (df['mos'].min(), df['mos'].max()),
-        "mos_mean": df['mos'].mean(),
-        "mos_std": df['mos'].std()
+        "mos_range": (df["mos"].min(), df["mos"].max()),
+        "mos_mean": df["mos"].mean(),
+        "mos_std": df["mos"].std(),
     }

@@ -1,13 +1,10 @@
 # src/data/factory.py
-from .metadata_loaders import Tid2013Loader, KonvidLoader, T2VqaLoader
+from .metadata_loaders import KonvidLoader, T2VqaLoader, Tid2013Loader
+
 
 class MetadataLoaderFactory:
     # Register the Loader; to add a new dataset, simply add one line here.
-    _REGISTRY = {
-        "konvid-1k": KonvidLoader,
-        "t2vqa-db": T2VqaLoader,
-        "tid2013": Tid2013Loader
-    }
+    _REGISTRY = {"konvid-1k": KonvidLoader, "t2vqa-db": T2VqaLoader, "tid2013": Tid2013Loader}
 
     @classmethod
     def get_loader(cls, dataset_name: str):
