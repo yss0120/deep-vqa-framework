@@ -18,9 +18,16 @@ assignees: ''
 
 ## 失败的 Job / Step
 
-<!-- 例如：Shell Script Syntax Check → Check scripts/*.sh syntax -->
+<!-- 例如：Shell Script Syntax Check / Dataset Download URL Check / Dataset Extract Logic Test -->
 - Job 名称：
 - Step 名称：
+
+## 是否与数据集下载相关？
+
+- [ ] 是（请写明数据集：TID2013 / KoNViD-1k / T2VQA-DB）
+- [ ] 否
+
+下载脚本：`scripts/manage_data.sh`
 
 ## 错误现象
 

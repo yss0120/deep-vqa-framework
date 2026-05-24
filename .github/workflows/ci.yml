@@ -25,3 +25,103 @@ jobs:
             bash -n "$f" && echo "  OK: $f" || { echo "  FAIL: $f"; failed=1; }
           done
           exit $failed
+
+  dataset-url-reachability:
+    name: Dataset Download URL Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify download URLs in manage_data.sh
+        run: |
+          set -e
+          for var in TID_SOURCE_URL KON_VIDEOS_SOURCE_URL KON_METADATA_SOURCE_URL T2V_SOURCE_URL; do
+            url=$(grep -E "^${var}=" scripts/manage_data.sh | head -1 | sed -E 's/^[^"]*"([^"]+)".*/\1/')
+            if [ -z "$url" ]; then
+              echo "FAIL: ${var} not found in manage_data.sh"
+              exit 1
+            fi
+            echo "  ${var}=${url}"
+          done
+
+      - name: Check TID2013 source URL
+        run: |
+          curl --head --silent --fail --max-time 20 \
+            "http://www.ponomarenko.info/tid2013/tid2013.rar" \
+            -o /dev/null -w "TID2013: HTTP %{http_code}\n"
+        continue-on-error: true
+
+      - name: Check KoNViD-1k videos URL
+        run: |
+          curl --head --silent --fail --max-time 20 \
+            "https://datasets.vqa.mmsp-kn.de/archives/KoNViD_1k_videos.zip" \
+            -o /dev/null -w "KoNViD-1k videos: HTTP %{http_code}\n"
+        continue-on-error: true
+
+      - name: Check KoNViD-1k metadata URL
+        run: |
+          curl --head --silent --fail --max-time 20 \
+            "https://datasets.vqa.mmsp-kn.de/archives/KoNViD_1k_metadata.zip" \
+            -o /dev/null -w "KoNViD-1k metadata: HTTP %{http_code}\n"
+        continue-on-error: true
+
+      - name: Check T2VQA-DB Google Drive URL
+        run: |
+          http_code=$(curl --silent --max-time 20 \
+            -o /dev/null -w "%{http_code}" \
+            "https://drive.google.com/file/d/1aak5hgYsXock19d1rVufss3_X6eEA4Wx/view")
+          echo "T2VQA-DB (Google Drive): HTTP ${http_code}"
+          [[ "$http_code" == "200" || "$http_code" == "303" ]] \
+            || echo "WARNING: T2VQA-DB page returned HTTP ${http_code}"
+        continue-on-error: true
+
+      - name: Summarize URL check
+        run: |
+          echo "URL reachability check finished."
+          echo "If any step above shows a warning, the URL may be geo-restricted from GitHub runners."
+          echo "Use Issues → CI 问题反馈 to report persistent download failures."
+
+  dataset-extract-logic:
+    name: Dataset Extract Logic Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install unzip
+        run: sudo apt-get update -qq && sudo apt-get install -y unzip
+
+      - name: Create mock ZIP archive
+        run: |
+          mkdir -p /tmp/mock_dataset/nested_dir
+          echo "mock_image_001.png" > /tmp/mock_dataset/nested_dir/img001.png
+          echo "mock_image_002.png" > /tmp/mock_dataset/nested_dir/img002.png
+          echo "mos_scores.csv"     > /tmp/mock_dataset/nested_dir/mos.csv
+          cd /tmp && zip -r mock_dataset.zip mock_dataset/
+
+      - name: Test smart_extract flatten logic
+        run: |
+          bash -c "
+          $(grep -A 50 '^smart_extract()' scripts/manage_data.sh | head -60)
+
+          TARGET=/tmp/extract_output
+          smart_extract /tmp/mock_dataset.zip \$TARGET
+
+          [ -f \$TARGET/img001.png ] || { echo 'FAIL: img001.png not found after flatten'; exit 1; }
+          [ -f \$TARGET/mos.csv    ] || { echo 'FAIL: mos.csv not found after flatten'; exit 1; }
+          echo 'PASS: smart_extract flatten logic'
+          "
+
+      - name: Test smart_extract skips existing directory
+        run: |
+          bash -c "
+          $(grep -A 50 '^smart_extract()' scripts/manage_data.sh | head -60)
+
+          TARGET=/tmp/already_exists
+          mkdir -p \$TARGET
+          echo 'existing_file' > \$TARGET/existing.txt
+
+          smart_extract /tmp/mock_dataset.zip \$TARGET
+
+          [ -f \$TARGET/existing.txt ] || { echo 'FAIL: existing file was overwritten'; exit 1; }
+          echo 'PASS: smart_extract skips non-empty existing directory'
+          "
