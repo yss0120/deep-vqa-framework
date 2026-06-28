@@ -3,27 +3,29 @@ task_type: "vqa"
 dataset_name: "KoNViD-1k"
 
 model:
-  name: "TimeSwinVQA"
+  name: "IQAVQANet"              # ← 修正：和代码一致
+  backbone: "swin_t"
   freeze_backbone: false
   pretrained: true
-  backbone: "swin_t"
   num_frames: 8
   transformer_layers: 2
   dropout: 0.3
   input_size: 224
 
-
 preprocessing:
-  batch_size: 1
+  batch_size: 4                  # ← 修正：从 1 改为 4
   num_workers: 4
-
+  k_fold: 5                      # ← 建议加上
 
 train:
   epochs: 30
   lr: 0.0001
   weight_decay: 0.0001
   grad_clip: 0.5
+  gradient_accumulation_steps: 2  # ← 建议加上（4 × 2 = 8）
 
 loss:
-  mse_weight: 0.8
-  rank_weight: 0.2
+  vqa_mse_weight: 0.4            # ← 修正：VQA 用 vqa_* 前缀
+  vqa_rank_weight: 0.3
+  vqa_plcc_weight: 0.3
+  max_pairs: 5000

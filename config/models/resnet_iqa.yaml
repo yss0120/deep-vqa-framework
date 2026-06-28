@@ -1,28 +1,39 @@
 # config/models/resnet_iqa.yaml
-task_type: "iqa" # 明确任务类型
+task_type: "iqa"
 dataset_name: "TID2013"
 
 model:
-  name: "HyperIQANet"
+  name: "IQAVQANet"           # ← 修正：和代码一致
   backbone: "resnet50"
   freeze_backbone: false
   pretrained: true
   dropout: 0.3
   input_size: 224
-
+  num_frames: 8               # IQA 不需要，但保留无害
 
 preprocessing:
-  batch_size: 32   # 覆盖 basic.yaml 中的值
+  batch_size: 32
   num_workers: 4
-
+  k_fold: 5                   # 建议加上，明确 K 值
 
 train:
   epochs: 50
   lr: 0.0001
   weight_decay: 1.0e-4
   grad_clip: 0.5
-
+  gradient_accumulation_steps: 4  # 建议加上
+  early_stop:
+    enabled: true
+    patience: 10
+    monitor: "val_srocc"
+    mode: "max"
+  checkpoint:
+    save_best: true
+    save_last: true
+    monitor: "val_srocc"
+    mode: "max"
+    save_top_k: 3
 
 loss:
-  mse_weight: 0.7
-  rank_weight: 0.3
+  mse_weight: 0.7              # 或者用 iqa_mse_weight: 0.7
+  rank_weight: 0.3             # 或者用 iqa_rank_weight: 0.3
