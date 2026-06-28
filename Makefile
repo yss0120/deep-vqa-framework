@@ -49,13 +49,10 @@ help:
 setup:
 	@echo "🔐 Setting script permissions...(Log: $(LOG_DIR)/setup_env.log)"
 	@chmod +x $(ROOT_DIR)/scripts/*.sh
-	@if [ -d "$(ROOT_DIR)/.venv" ]; then \
-		echo "✅ Environment already exists. Skipping setup."; \
-	else \
-		echo "⚙️  Setting up environment..."; \
-		cd $(ROOT_DIR)/scripts && bash setup_env.sh --mirror > $(LOG_DIR)/setup_env.log 2>&1; \
-		echo "✅ Environment ready"; \
-	fi
+	@echo "⚙️  Setting up environment..."
+	@cd $(ROOT_DIR)/scripts && bash setup_env.sh --mirror > $(LOG_DIR)/setup_env.log 2>&1
+	@echo "✅ Environment ready"
+
 
 # 2. Data Preparation
 data:
