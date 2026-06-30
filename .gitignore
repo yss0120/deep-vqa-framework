@@ -6,8 +6,6 @@
 
 datasets/
 results/
-api.py
-infer.py
 .download_cache/
 scripts/download_flag
 
