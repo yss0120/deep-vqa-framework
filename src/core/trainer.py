@@ -358,6 +358,19 @@ class TrainerExecutionPipeline:
             y_true = torch.cat(y_true_list).numpy()
             y_pred = torch.cat(y_pred_list).numpy()
 
+            # 💎 新增：反归一化回原始 MOS 量纲，让 RMSE 可以跟文献对比
+            dataset_info = config_to_use.get("dataset_info", {}) or {}
+            mos_min = dataset_info.get("mos_min")
+            mos_max = dataset_info.get("mos_max")
+
+            if mos_min is not None and mos_max is not None:
+                y_true_real = y_true * (mos_max - mos_min) + mos_min
+                y_pred_real = y_pred * (mos_max - mos_min) + mos_min
+                logger.info(f"📐 [Test] 已反归一化回原始 MOS 区间 [{mos_min:.3f}, {mos_max:.3f}]")
+            else:
+                y_true_real, y_pred_real = y_true, y_pred
+                logger.warning("⚠️ [Test] config 中未找到 mos_min/mos_max，RMSE 仍是 [0,1] 量纲，不能直接跟文献对比")
+
             evaluator.evaluate(y_true, y_pred)
 
         finally:

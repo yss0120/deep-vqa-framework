@@ -109,6 +109,12 @@ def main():
         pdb.set_trace()
         return
 
+    # 💎 新增：把归一化参数写回 config，确保它最终被存进 checkpoint
+    if "mos_min" in eda_engine.stats and "mos_max" in eda_engine.stats:
+        config.setdefault("dataset_info", {})["mos_min"] = eda_engine.stats["mos_min"]
+        config.setdefault("dataset_info", {})["mos_max"] = eda_engine.stats["mos_max"]
+        logger.info(f"📐 [Main] MOS 归一化范围已写入配置: [{eda_engine.stats['mos_min']:.3f}, {eda_engine.stats['mos_max']:.3f}]")
+
     if args.smoke_test and eda_engine.df is not None:
         logger.info(f"⚡ [Main] Smoke sampling: Truncating metadata from {len(eda_engine.df)} to 16 samples.")
         eda_engine.df = eda_engine.df.sample(n=min(16, len(eda_engine.df)), random_state=42).reset_index(drop=True)
