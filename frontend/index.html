@@ -1,28 +1,50 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Deep-VQA 多模型质量评价工作台</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deep-VQA 智能质量评估</title>
   <style>
     :root {
-      --bg: #f4f7fb;
-      --card: rgba(255,255,255,.92);
-      --card-solid: #ffffff;
-      --text: #102033;
-      --muted: #64748b;
-      --primary: #3b5bdb;
-      --primary-dark: #203a8f;
-      --line: #d8e1ef;
-      --ok: #0f9f6e;
-      --warn: #d97706;
-      --danger: #dc2626;
-      --shadow: 0 24px 70px rgba(15, 23, 42, .10);
-      --radius-xl: 28px;
-      --radius-lg: 20px;
+      --bg: #f3f6fb;
+      --surface: rgba(255,255,255,.9);
+      --surface-strong: #ffffff;
+      --surface-soft: #f7f9fd;
+      --surface-tint: #eef3ff;
+      --text: #101828;
+      --muted: #65758b;
+      --line: rgba(148,163,184,.28);
+      --primary: #4f46e5;
+      --primary-dark: #3730a3;
+      --cyan: #06b6d4;
+      --green: #10b981;
+      --amber: #f59e0b;
+      --rose: #ef4444;
+      --violet: #8b5cf6;
+      --shadow: 0 28px 80px rgba(15, 23, 42, .12);
+      --shadow-soft: 0 14px 38px rgba(15, 23, 42, .08);
+      --radius-xl: 32px;
+      --radius-lg: 24px;
+      --radius-md: 16px;
+      --radius-sm: 12px;
+    }
+
+    [data-theme="dark"] {
+      --bg: #0a1020;
+      --surface: rgba(17, 24, 39, .88);
+      --surface-strong: #111827;
+      --surface-soft: #0f172a;
+      --surface-tint: #172554;
+      --text: #edf2ff;
+      --muted: #a8b3c6;
+      --line: rgba(148,163,184,.24);
+      --shadow: 0 28px 80px rgba(0, 0, 0, .34);
+      --shadow-soft: 0 14px 38px rgba(0, 0, 0, .22);
     }
 
     * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
 
     body {
       margin: 0;
@@ -30,660 +52,1437 @@
       font-family: Inter, "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       color: var(--text);
       background:
-        radial-gradient(circle at 8% 6%, rgba(116, 94, 255, .16), transparent 28%),
-        radial-gradient(circle at 92% 12%, rgba(79, 172, 254, .14), transparent 26%),
-        linear-gradient(135deg, #f7f9fd 0%, #eef3fb 100%);
-      padding: 28px;
+        radial-gradient(circle at 10% 5%, rgba(79, 70, 229, .24), transparent 26%),
+        radial-gradient(circle at 90% 8%, rgba(6, 182, 212, .18), transparent 28%),
+        radial-gradient(circle at 50% 100%, rgba(245, 158, 11, .13), transparent 26%),
+        var(--bg);
+      padding: 22px;
     }
 
-    .shell { max-width: 1380px; margin: 0 auto; }
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+    button:disabled { cursor: not-allowed; opacity: .48; }
 
-    .hero {
-      display: grid;
-      grid-template-columns: minmax(0, 1.4fr) minmax(320px, .85fr);
-      gap: 22px;
-      align-items: stretch;
-      margin-bottom: 22px;
-    }
+    .app { max-width: 1480px; margin: 0 auto; }
 
-    .hero-main,
-    .panel {
-      background: var(--card);
-      border: 1px solid rgba(255,255,255,.75);
-      border-radius: var(--radius-xl);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(16px);
-    }
-
-    .hero-main { padding: 32px; position: relative; overflow: hidden; }
-    .hero-main::after {
-      content: "";
-      position: absolute;
-      width: 220px;
-      height: 220px;
-      border-radius: 50%;
-      background: rgba(59,91,219,.08);
-      right: -70px;
-      top: -80px;
-    }
-
-    .kicker {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 7px 14px;
-      border-radius: 999px;
-      background: #e0e7ff;
-      color: var(--primary-dark);
-      font-weight: 800;
-      font-size: 13px;
-    }
-
-    h1 { margin: 18px 0 10px; font-size: clamp(30px, 4vw, 48px); letter-spacing: -1px; }
-    h2 { margin: 0; font-size: 20px; }
-    p { margin: 0; }
-
-    .subtitle { max-width: 860px; color: var(--muted); line-height: 1.75; font-size: 16px; }
-
-    .tags { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
-    .tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 12px;
-      border-radius: 999px;
-      background: #f1f5ff;
-      color: #334155;
-      border: 1px solid #dbe5ff;
-      font-size: 13px;
-      font-weight: 750;
-    }
-
-    .panel { padding: 22px; }
-    .panel-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
-
-    .status-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      border: 1px solid var(--line);
-      background: #f8fafc;
-      color: var(--muted);
-      border-radius: 999px;
-      padding: 7px 11px;
-      font-size: 13px;
-      font-weight: 800;
-      white-space: nowrap;
-    }
-    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); display: inline-block; }
-    .status-pill.ok .dot { background: var(--ok); }
-    .status-pill.fail .dot { background: var(--danger); }
-
-    .form-row { margin-top: 12px; }
-    label { display: block; color: #334155; font-weight: 850; font-size: 13px; margin-bottom: 7px; }
-    .input-wrap {
+    .topbar {
       display: flex;
       align-items: center;
-      overflow: hidden;
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      background: #fff;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
     }
-    .input-wrap span { padding: 0 12px; color: var(--muted); font-size: 12px; font-weight: 900; border-right: 1px solid var(--line); }
-    input[type="text"] { width: 100%; border: 0; outline: none; padding: 13px 12px; font-size: 14px; color: var(--text); background: transparent; }
 
-    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
-    .btn {
+    .brand { display: flex; align-items: center; gap: 12px; }
+
+    .brand-mark {
+      width: 52px;
+      height: 52px;
+      border-radius: 18px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-weight: 1000;
+      letter-spacing: -.06em;
+      background: linear-gradient(135deg, var(--primary), var(--cyan));
+      box-shadow: 0 18px 38px rgba(79, 70, 229, .28);
+    }
+
+    .brand-title { font-weight: 950; font-size: 18px; letter-spacing: -.02em; }
+    .brand-subtitle { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+    .top-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+
+    .glass {
+      background: var(--surface);
+      border: 1px solid rgba(255, 255, 255, .7);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    [data-theme="dark"] .glass { border-color: rgba(148,163,184,.22); }
+
+    .button {
       border: 0;
-      outline: 0;
       border-radius: 999px;
-      padding: 13px 18px;
+      padding: 12px 17px;
       font-weight: 900;
-      cursor: pointer;
       color: #fff;
       background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-      box-shadow: 0 14px 26px rgba(59, 91, 219, .22);
-      transition: transform .18s ease, opacity .18s ease, box-shadow .18s ease;
+      box-shadow: 0 14px 30px rgba(79, 70, 229, .24);
+      transition: transform .18s ease, box-shadow .18s ease, opacity .18s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      white-space: nowrap;
     }
-    .btn:hover { transform: translateY(-1px); box-shadow: 0 18px 30px rgba(59, 91, 219, .28); }
-    .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; }
-    .btn.secondary { color: var(--primary-dark); background: #eef2ff; box-shadow: none; border: 1px solid #dbe5ff; }
-    .btn.danger { background: #fee2e2; color: var(--danger); box-shadow: none; border: 1px solid #fecaca; }
 
-    .layout { display: grid; grid-template-columns: minmax(330px, .85fr) minmax(0, 1.35fr); gap: 22px; }
+    .button:hover { transform: translateY(-1px); box-shadow: 0 18px 34px rgba(79, 70, 229, .30); }
+    .button.secondary { color: var(--text); background: var(--surface-strong); border: 1px solid var(--line); box-shadow: var(--shadow-soft); }
+    .button.soft { color: var(--primary-dark); background: #eef2ff; border: 1px solid rgba(79, 70, 229, .18); box-shadow: none; }
+    .button.ghost { color: var(--muted); background: transparent; border: 1px solid var(--line); box-shadow: none; }
+    .button.danger { color: #991b1b; background: #fee2e2; border: 1px solid #fecaca; box-shadow: none; }
+    [data-theme="dark"] .button.soft { color: #dbeafe; background: rgba(79, 70, 229, .22); }
+    [data-theme="dark"] .button.danger { color: #fecaca; background: rgba(239, 68, 68, .18); border-color: rgba(239, 68, 68, .35); }
 
-    .drop-zone {
-      border: 2px dashed #b8c7dd;
-      border-radius: 24px;
-      min-height: 190px;
+    .hero {
+      position: relative;
+      overflow: hidden;
+      border-radius: var(--radius-xl);
+      padding: 34px;
+      margin-bottom: 20px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.36fr) minmax(360px, .74fr);
+      gap: 22px;
+    }
+
+    .hero:before {
+      content: "";
+      position: absolute;
+      inset: auto -80px -110px auto;
+      width: 320px;
+      height: 320px;
+      border-radius: 50%;
+      background: rgba(79, 70, 229, .10);
+    }
+
+    .hero-content { position: relative; z-index: 1; }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      color: var(--primary-dark);
+      background: #e0e7ff;
+      font-weight: 950;
+      font-size: 13px;
+    }
+
+    [data-theme="dark"] .eyebrow { color: #dbeafe; background: rgba(79, 70, 229, .25); }
+
+    h1 {
+      margin: 18px 0 12px;
+      font-size: clamp(36px, 5vw, 68px);
+      line-height: 1.02;
+      letter-spacing: -0.06em;
+    }
+
+    .hero-text {
+      max-width: 780px;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.78;
+    }
+
+    .hero-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 24px;
+      max-width: 820px;
+    }
+
+    .metric-pill {
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 14px 15px;
+      background: rgba(255,255,255,.62);
+    }
+
+    [data-theme="dark"] .metric-pill { background: rgba(15,23,42,.56); }
+
+    .metric-pill span { display: block; color: var(--muted); font-weight: 850; font-size: 12px; margin-bottom: 6px; }
+    .metric-pill strong { font-size: 22px; letter-spacing: -.03em; }
+
+    .hero-card {
+      position: relative;
+      z-index: 1;
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background: var(--surface-strong);
+      padding: 22px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .step-line { display: grid; gap: 12px; margin-top: 18px; }
+
+    .step-item {
+      display: grid;
+      grid-template-columns: 38px 1fr;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 18px;
+      background: var(--surface-soft);
+      border: 1px solid var(--line);
+    }
+
+    .step-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-weight: 1000;
+      background: linear-gradient(135deg, var(--primary), var(--cyan));
+    }
+
+    .step-item b { display: block; font-size: 14px; }
+    .step-item span { display: block; color: var(--muted); font-size: 12px; margin-top: 3px; line-height: 1.45; }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: minmax(360px, .9fr) minmax(0, 1.24fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .stack { display: grid; gap: 20px; }
+
+    .panel {
+      border-radius: var(--radius-xl);
+      padding: 24px;
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .panel-title { margin: 0; font-size: 22px; letter-spacing: -.03em; }
+    .panel-desc { color: var(--muted); line-height: 1.62; font-size: 13px; margin: 6px 0 0; }
+
+    .segmented {
       display: flex;
       align-items: center;
-      justify-content: center;
-      text-align: center;
-      cursor: pointer;
-      background: rgba(248,250,252,.9);
-      transition: .2s;
-      padding: 28px;
+      padding: 5px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--surface-soft);
+      gap: 4px;
     }
-    .drop-zone:hover,
-    .drop-zone.drag { border-color: var(--primary); background: #eff5ff; }
-    .drop-zone strong { display: block; font-size: 18px; margin: 10px 0 6px; }
-    .drop-zone p { color: var(--muted); font-size: 13px; line-height: 1.6; }
+
+    .segmented button {
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 9px 13px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .segmented button.active {
+      background: var(--surface-strong);
+      color: var(--text);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .upload-list { display: grid; gap: 12px; }
+
+    .drop-zone {
+      border: 2px dashed rgba(100, 116, 139, .32);
+      border-radius: 26px;
+      min-height: 210px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 28px;
+      background: linear-gradient(180deg, rgba(255,255,255,.78), rgba(248,250,252,.78));
+      transition: border-color .18s ease, transform .18s ease, background .18s ease;
+    }
+
+    [data-theme="dark"] .drop-zone { background: rgba(15,23,42,.56); }
+    .drop-zone:hover, .drop-zone.dragging { border-color: var(--primary); transform: translateY(-1px); background: var(--surface-tint); }
+    .drop-zone .upload-icon { font-size: 42px; margin-bottom: 10px; }
+    .drop-zone strong { display: block; font-size: 18px; margin-bottom: 7px; }
+    .drop-zone p { color: var(--muted); line-height: 1.58; font-size: 13px; margin: 0; }
     .file-input { display: none; }
 
-    .file-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 14px 0; }
-    .meta-item { background: #f8fafc; border: 1px solid var(--line); border-radius: 16px; padding: 12px; }
-    .meta-item span { display: block; color: var(--muted); font-size: 12px; font-weight: 800; margin-bottom: 4px; }
-    .meta-item b { font-size: 13px; overflow-wrap: anywhere; }
-
-    .preview {
-      min-height: 220px;
-      border-radius: 22px;
-      overflow: hidden;
-      background: #0b1120;
+    .sample-card {
       display: none;
-      align-items: center;
-      justify-content: center;
-      margin: 14px 0;
+      grid-template-columns: 130px 1fr;
+      gap: 14px;
+      align-items: stretch;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 12px;
+      background: var(--surface-strong);
     }
-    .preview img, .preview video { max-width: 100%; max-height: 330px; display: block; object-fit: contain; }
+
+    .sample-card.show { display: grid; }
+
+    .preview-box {
+      min-height: 130px;
+      border-radius: 18px;
+      overflow: hidden;
+      background: #0f172a;
+      display: grid;
+      place-items: center;
+    }
+
+    .preview-box img, .preview-box video { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    .sample-info { min-width: 0; display: grid; align-content: center; gap: 8px; }
+    .sample-name { font-weight: 950; overflow-wrap: anywhere; }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .mini-stat {
+      border: 1px solid var(--line);
+      background: var(--surface-soft);
+      border-radius: 14px;
+      padding: 9px 10px;
+    }
+
+    .mini-stat span { display: block; color: var(--muted); font-size: 11px; font-weight: 850; margin-bottom: 3px; }
+    .mini-stat b { font-size: 13px; overflow-wrap: anywhere; }
 
     .model-grid { display: grid; gap: 12px; }
+
     .model-card {
       position: relative;
       display: grid;
       grid-template-columns: auto 1fr;
       gap: 12px;
-      align-items: flex-start;
+      align-items: start;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: var(--surface-strong);
+      padding: 15px;
+      transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+    }
+
+    .model-card:hover { transform: translateY(-1px); border-color: rgba(79,70,229,.38); box-shadow: var(--shadow-soft); }
+    .model-card input { width: 19px; height: 19px; margin-top: 2px; accent-color: var(--primary); }
+    .model-name { font-weight: 950; margin-bottom: 4px; }
+    .model-line { color: var(--muted); font-size: 13px; line-height: 1.55; }
+
+    .chips { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 10px; }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border-radius: 999px;
+      padding: 6px 9px;
+      font-size: 12px;
+      font-weight: 900;
+      color: #344054;
+      background: #f1f5f9;
+      border: 1px solid rgba(148,163,184,.28);
+      white-space: nowrap;
+    }
+
+    [data-theme="dark"] .chip { color: #dbeafe; background: rgba(148,163,184,.12); }
+
+    .interaction-card {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 16px;
+      background: var(--surface-strong);
+    }
+
+    .score-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      margin-top: 12px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--primary);
+    }
+
+    .subjective-score {
+      font-size: 28px;
+      font-weight: 1000;
+      color: var(--primary-dark);
+      min-width: 74px;
+      text-align: right;
+    }
+
+    [data-theme="dark"] .subjective-score { color: #c7d2fe; }
+
+    .tag-cloud { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
+    .quality-tag {
+      border: 1px solid var(--line);
+      background: var(--surface-soft);
+      color: var(--muted);
+      padding: 8px 11px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .quality-tag.active { color: #fff; background: linear-gradient(135deg, var(--primary), var(--cyan)); border-color: transparent; }
+
+    textarea {
+      width: 100%;
+      resize: vertical;
+      min-height: 80px;
       border: 1px solid var(--line);
       border-radius: 18px;
+      padding: 13px;
+      background: var(--surface-soft);
+      color: var(--text);
+      outline: 0;
+      margin-top: 12px;
+    }
+
+    textarea:focus, input[type="text"]:focus { border-color: rgba(79, 70, 229, .45); box-shadow: 0 0 0 4px rgba(79, 70, 229, .10); }
+
+    .status-line {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 11px;
+      background: var(--surface-strong);
+      color: var(--muted);
+      font-weight: 900;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--amber);
+      box-shadow: 0 0 0 4px rgba(245, 158, 11, .14);
+    }
+
+    .status-line.ok .status-dot { background: var(--green); box-shadow: 0 0 0 4px rgba(16, 185, 129, .16); }
+    .status-line.fail .status-dot { background: var(--rose); box-shadow: 0 0 0 4px rgba(239, 68, 68, .16); }
+
+    .progress-area { display: none; margin-top: 15px; }
+    .progress-area.show { display: block; }
+    .progress-top { display: flex; justify-content: space-between; color: var(--muted); font-weight: 900; font-size: 12px; margin-bottom: 8px; }
+    .progress-track { height: 10px; border-radius: 999px; background: rgba(148,163,184,.25); overflow: hidden; }
+    .progress-fill { width: 0; height: 100%; background: linear-gradient(90deg, var(--primary), var(--cyan)); transition: width .2s ease; }
+
+    .message { display: none; padding: 13px 15px; border-radius: 18px; font-size: 13px; font-weight: 800; line-height: 1.62; margin-top: 14px; }
+    .message.show { display: block; }
+    .message.info { color: #1e3a8a; background: #eff6ff; border: 1px solid #bfdbfe; }
+    .message.success { color: #065f46; background: #ecfdf5; border: 1px solid #a7f3d0; }
+    .message.error { color: #991b1b; background: #fef2f2; border: 1px solid #fecaca; }
+    [data-theme="dark"] .message.info { color: #dbeafe; background: rgba(37, 99, 235, .18); border-color: rgba(37, 99, 235, .28); }
+    [data-theme="dark"] .message.success { color: #d1fae5; background: rgba(5, 150, 105, .18); border-color: rgba(5, 150, 105, .28); }
+    [data-theme="dark"] .message.error { color: #fee2e2; background: rgba(220, 38, 38, .18); border-color: rgba(220, 38, 38, .28); }
+
+    .result-hero {
+      display: grid;
+      grid-template-columns: minmax(220px, .7fr) minmax(0, 1.3fr);
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .score-card {
+      border-radius: 28px;
+      padding: 22px;
+      color: #fff;
+      background: linear-gradient(135deg, #4338ca, #06b6d4);
+      box-shadow: 0 22px 52px rgba(79, 70, 229, .28);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .score-card:after {
+      content: "";
+      position: absolute;
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.14);
+      right: -60px;
+      top: -80px;
+    }
+
+    .score-label { position: relative; z-index: 1; opacity: .86; font-weight: 900; font-size: 13px; }
+    .score-main { position: relative; z-index: 1; font-size: clamp(46px, 7vw, 76px); line-height: .95; font-weight: 1000; letter-spacing: -.08em; margin: 14px 0 10px; }
+    .score-caption { position: relative; z-index: 1; opacity: .88; line-height: 1.55; font-size: 13px; }
+
+    .passport {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .passport-item {
+      border: 1px solid var(--line);
+      border-radius: 20px;
       padding: 14px;
-      background: #fff;
-      cursor: pointer;
-      transition: .18s;
+      background: var(--surface-strong);
+      min-height: 88px;
     }
-    .model-card:hover { border-color: #aebfff; transform: translateY(-1px); }
-    .model-card input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--primary); }
-    .model-name { font-weight: 950; margin-bottom: 4px; }
-    .model-desc { color: var(--muted); font-size: 13px; line-height: 1.55; }
-    .model-meta { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 8px; }
-    .chip { font-size: 12px; color: #334155; background: #f1f5f9; border: 1px solid #e2e8f0; padding: 5px 8px; border-radius: 999px; font-weight: 800; }
 
-    .hint {
-      margin-top: 10px;
-      padding: 12px 14px;
-      border-radius: 16px;
-      background: #fff7ed;
-      color: #9a3412;
-      border: 1px solid #fed7aa;
+    .passport-item span { color: var(--muted); font-size: 12px; font-weight: 900; display: block; margin-bottom: 6px; }
+    .passport-item strong { font-size: 20px; letter-spacing: -.03em; }
+    .passport-item p { color: var(--muted); font-size: 12px; line-height: 1.55; margin: 6px 0 0; }
+
+    .empty-state {
+      min-height: 300px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: var(--muted);
+      border: 1px dashed var(--line);
+      border-radius: 26px;
+      background: var(--surface-soft);
+      padding: 28px;
+    }
+
+    .empty-state b { display: block; color: var(--text); font-size: 18px; margin-bottom: 8px; }
+
+    .result-list { display: grid; gap: 12px; }
+
+    .result-card {
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: var(--surface-strong);
+      padding: 15px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .result-title { font-weight: 950; margin-bottom: 5px; }
+    .result-meta { color: var(--muted); font-size: 12px; line-height: 1.48; }
+    .result-score { font-size: 30px; font-weight: 1000; color: var(--primary-dark); letter-spacing: -.06em; text-align: right; }
+    [data-theme="dark"] .result-score { color: #c7d2fe; }
+
+    .bar-wrap { height: 8px; border-radius: 999px; background: rgba(148,163,184,.22); overflow: hidden; margin-top: 10px; }
+    .bar-fill { height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, var(--primary), var(--cyan)); }
+
+    .analysis-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .analysis-card {
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 14px;
+      background: var(--surface-soft);
+    }
+
+    .analysis-card b { display: block; margin-bottom: 7px; }
+    .analysis-card p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.58; }
+
+    .insight-list { display: grid; gap: 10px; margin-top: 14px; }
+
+    .insight {
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 10px;
+      align-items: start;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 12px;
+      background: var(--surface-strong);
+    }
+
+    .insight-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 13px;
+      display: grid;
+      place-items: center;
+      background: var(--surface-tint);
+    }
+
+    .insight b { display: block; font-size: 13px; }
+    .insight p { margin: 4px 0 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+
+    .tab {
+      border: 1px solid var(--line);
+      background: var(--surface-strong);
+      border-radius: 999px;
+      color: var(--muted);
+      padding: 9px 13px;
+      font-weight: 900;
       font-size: 13px;
-      line-height: 1.6;
-      font-weight: 650;
     }
 
-    .progress-wrap { display: none; margin-top: 14px; }
-    .progress-head { display: flex; justify-content: space-between; color: var(--muted); font-size: 13px; font-weight: 850; margin-bottom: 8px; }
-    .progress-bar { width: 100%; height: 9px; background: #e2e8f0; border-radius: 999px; overflow: hidden; }
-    .progress-fill { width: 0; height: 100%; background: linear-gradient(90deg, #4f46e5, #06b6d4); transition: width .2s ease; }
+    .tab.active { color: #fff; background: linear-gradient(135deg, var(--primary), var(--cyan)); border-color: transparent; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
 
-    .message { display: none; margin-top: 14px; border-radius: 16px; padding: 12px 14px; font-size: 13px; font-weight: 750; line-height: 1.6; }
-    .message.info { display:block; color:#1e3a8a; background:#eff6ff; border:1px solid #bfdbfe; }
-    .message.success { display:block; color:#065f46; background:#ecfdf5; border:1px solid #a7f3d0; }
-    .message.error { display:block; color:#991b1b; background:#fef2f2; border:1px solid #fecaca; }
-
-    .summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
-    .summary-tile { border: 1px solid var(--line); background: #f8fafc; border-radius: 18px; padding: 14px; }
-    .summary-tile span { display:block; color: var(--muted); font-size: 12px; font-weight: 900; margin-bottom: 6px; }
-    .summary-tile strong { font-size: 22px; }
-
-    .result-table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 18px; background: #fff; }
-    table { width: 100%; border-collapse: collapse; min-width: 720px; }
-    th, td { padding: 13px 14px; text-align: left; border-bottom: 1px solid #edf2f7; font-size: 14px; }
-    th { color: #334155; background: #f8fafc; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
-    tr:last-child td { border-bottom: 0; }
-    .mos { font-size: 22px; font-weight: 950; color: var(--primary-dark); }
-    .small { color: var(--muted); font-size: 12px; line-height: 1.55; }
-    .bar { width: 120px; height: 8px; border-radius: 999px; background: #e2e8f0; overflow: hidden; }
-    .bar > i { display:block; height:100%; background: linear-gradient(90deg,#4f46e5,#06b6d4); }
-
-    .empty { text-align: center; color: var(--muted); padding: 34px 18px; }
-    details { margin-top: 14px; border: 1px solid var(--line); border-radius: 18px; background: #fff; overflow: hidden; }
-    summary { cursor: pointer; padding: 13px 15px; font-weight: 900; }
-    pre { margin: 0; padding: 15px; max-height: 280px; overflow: auto; background: #0f172a; color: #e2e8f0; font-size: 12px; line-height: 1.65; }
-
-    .history-list { display: grid; gap: 10px; max-height: 300px; overflow: auto; }
-    .history-item { display:grid; grid-template-columns: 1fr auto; gap: 10px; align-items:center; padding: 12px 14px; border: 1px solid var(--line); border-radius: 16px; background: #fff; }
-    .history-item strong { overflow-wrap: anywhere; }
-
-    @media (max-width: 960px) {
-      body { padding: 16px; }
-      .hero, .layout { grid-template-columns: 1fr; }
-      .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .knowledge-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
     }
-    @media (max-width: 560px) {
-      .file-meta, .summary-grid { grid-template-columns: 1fr; }
-      .hero-main, .panel { padding: 18px; border-radius: 22px; }
-      .history-item { grid-template-columns: 1fr; }
+
+    .knowledge-card {
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: var(--surface-strong);
+      padding: 16px;
+    }
+
+    .knowledge-card .emoji { font-size: 26px; margin-bottom: 10px; }
+    .knowledge-card b { display: block; margin-bottom: 7px; }
+    .knowledge-card p { color: var(--muted); font-size: 12px; line-height: 1.6; margin: 0; }
+
+    .bench-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .bench-card {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--surface-strong);
+      padding: 18px;
+    }
+
+    .bench-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+    .bench-title { font-weight: 950; }
+    .bench-score { font-size: 26px; font-weight: 1000; color: var(--primary-dark); }
+    [data-theme="dark"] .bench-score { color: #c7d2fe; }
+
+    .mini-table { display: grid; gap: 8px; }
+    .mini-row { display: flex; justify-content: space-between; gap: 12px; color: var(--muted); font-size: 13px; }
+    .mini-row strong { color: var(--text); }
+
+    .history-list { display: grid; gap: 10px; max-height: 360px; overflow: auto; padding-right: 4px; }
+
+    .history-item {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--surface-strong);
+      padding: 13px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .history-title { font-weight: 950; overflow-wrap: anywhere; }
+    .history-meta { color: var(--muted); font-size: 12px; line-height: 1.5; margin-top: 4px; }
+    .history-score { font-weight: 1000; font-size: 24px; color: var(--primary-dark); }
+    [data-theme="dark"] .history-score { color: #c7d2fe; }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      place-items: center;
+      background: rgba(15, 23, 42, .55);
+      backdrop-filter: blur(8px);
+      z-index: 50;
+      padding: 18px;
+    }
+
+    .modal.show { display: grid; }
+
+    .modal-card {
+      width: min(780px, 100%);
+      max-height: 92vh;
+      overflow: auto;
+      border-radius: 30px;
+      background: var(--surface-strong);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+
+    .modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+    .modal-title { margin: 0; font-size: 24px; letter-spacing: -.04em; }
+    .close-btn { border: 0; width: 40px; height: 40px; border-radius: 50%; background: var(--surface-soft); color: var(--text); font-weight: 1000; }
+
+    .form-grid { display: grid; gap: 12px; }
+    .field label { display: block; font-size: 13px; font-weight: 950; margin-bottom: 7px; }
+    .field input[type="text"] { width: 100%; border: 1px solid var(--line); border-radius: 16px; padding: 12px 13px; outline: 0; color: var(--text); background: var(--surface-soft); }
+    .field-hint { color: var(--muted); font-size: 12px; line-height: 1.5; margin-top: 6px; }
+
+    .report-box {
+      width: 100%;
+      min-height: 320px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 16px;
+      background: var(--surface-soft);
+      color: var(--text);
+      line-height: 1.7;
+      white-space: pre-wrap;
+      overflow: auto;
+    }
+
+    .presentation {
+      width: min(980px, 100%);
+      text-align: center;
+      padding: 42px;
+    }
+
+    .presentation .score-main { font-size: clamp(76px, 12vw, 152px); }
+    .presentation-title { font-size: clamp(28px, 4vw, 52px); line-height: 1.08; margin: 0 0 16px; letter-spacing: -.06em; }
+    .presentation-subtitle { color: var(--muted); line-height: 1.68; margin: 0 auto; max-width: 700px; }
+
+    @media (max-width: 1120px) {
+      .hero, .main-grid, .result-hero { grid-template-columns: 1fr; }
+      .knowledge-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 760px) {
+      body { padding: 14px; }
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .hero, .panel { padding: 18px; border-radius: 24px; }
+      .hero-metrics, .passport, .analysis-grid, .bench-grid, .knowledge-grid { grid-template-columns: 1fr; }
+      .sample-card { grid-template-columns: 1fr; }
+      .preview-box { height: 190px; }
+      .main-grid { grid-template-columns: 1fr; }
+      .result-card, .history-item { grid-template-columns: 1fr; }
+      .result-score, .history-score { text-align: left; }
     }
   </style>
 </head>
 <body>
-  <main class="shell">
-    <section class="hero">
-      <div class="hero-main">
-        <div class="kicker">✅ Multi-Model Real API Mode · 两种以上模型评分</div>
-        <h1>Deep-VQA 多模型质量评价工作台</h1>
-        <p class="subtitle">
-          这个页面不在前端生成假分数。上传图片或视频后，前端会把同一媒体提交给后端的多个模型配置，默认启用仓库中已有的 ResNet50-IQA 与 Swin-T-VQA 两条模型路径，并将每个模型的 MOS、归一化分数、Backbone、耗时和综合均值展示出来。
-        </p>
-        <div class="tags">
-          <span class="tag">🧠 resnet_iqa：IQAVQANet + ResNet50</span>
-          <span class="tag">🎞️ timeswin_vqa：IQAVQANet + Swin-T + Transformer</span>
-          <span class="tag">📤 POST /evaluate · model 参数逐模型调用</span>
-          <span class="tag">📏 Score 0-1 自动映射 MOS 0-5</span>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">VQA</div>
+        <div>
+          <div class="brand-title">Deep-VQA 智能质量评估</div>
+          <div class="brand-subtitle">图像与视频主观质量预测平台</div>
         </div>
       </div>
+      <div class="top-actions">
+        <button class="button secondary" id="themeBtn" type="button">深色模式</button>
+        <button class="button secondary" id="serviceBtn" type="button">服务设置</button>
+        <button class="button" id="jumpEvaluateBtn" type="button">开始评估</button>
+      </div>
+    </header>
 
-      <aside class="panel">
-        <div class="panel-title">
-          <h2>后端接口</h2>
-          <span class="status-pill" id="backendStatus"><span class="dot"></span>未检测</span>
+    <section class="hero glass">
+      <div class="hero-content">
+        <div class="eyebrow">无参考质量评价 · 图像 IQA · 视频 VQA</div>
+        <h1>让一张图、一段视频拥有自己的质量报告</h1>
+        <p class="hero-text">上传媒体后，系统会调用图像质量模型与视频质量模型进行综合评分，并结合你的主观盲评、失真标签、媒体基础特征，生成一份更适合展示和汇报的质量护照。</p>
+        <div class="hero-metrics">
+          <div class="metric-pill"><span>图像模型测试 SROCC</span><strong>0.9484</strong></div>
+          <div class="metric-pill"><span>视频模型测试 SROCC</span><strong>0.7465</strong></div>
+          <div class="metric-pill"><span>输出体验分</span><strong>0–5</strong></div>
         </div>
-        <div class="form-row">
-          <label for="apiBaseInput">API Base URL</label>
-          <div class="input-wrap"><span>base</span><input id="apiBaseInput" type="text" placeholder="例如 http://127.0.0.1:8000；同源部署可留空" /></div>
+      </div>
+      <aside class="hero-card">
+        <div class="panel-head" style="margin-bottom:0">
+          <div>
+            <h2 class="panel-title">体验流程</h2>
+            <p class="panel-desc">从上传到报告，只需要四步。</p>
+          </div>
+          <span class="status-line" id="serviceStatus"><span class="status-dot"></span>待连接</span>
         </div>
-        <div class="form-row">
-          <label for="apiPathInput">评价接口路径</label>
-          <div class="input-wrap"><span>POST</span><input id="apiPathInput" type="text" placeholder="/evaluate 或 /api/evaluate" /></div>
-        </div>
-        <div class="btn-row">
-          <button class="btn secondary" id="saveConfigBtn">💾 保存配置</button>
-          <button class="btn secondary" id="checkBackendBtn">🔌 连接检测</button>
-        </div>
-        <div class="hint">
-          后端需要支持字段：<b>file</b>、<b>media_type</b>、<b>task_type</b>、<b>model</b>。前端会对每个已选模型各请求一次，避免只得到一个单模型分数。
+        <div class="step-line">
+          <div class="step-item"><div class="step-icon">1</div><div><b>上传样本</b><span>支持常见图片与视频格式。</span></div></div>
+          <div class="step-item"><div class="step-icon">2</div><div><b>先做主观判断</b><span>锁定你的直觉分数，再与模型对比。</span></div></div>
+          <div class="step-item"><div class="step-icon">3</div><div><b>双模型评估</b><span>空间细节模型与时序模型共同给分。</span></div></div>
+          <div class="step-item"><div class="step-icon">4</div><div><b>生成质量护照</b><span>等级、原因、建议和历史记录自动整理。</span></div></div>
         </div>
       </aside>
     </section>
 
-    <section class="layout">
-      <article class="panel">
-        <div class="panel-title">
-          <h2>1. 上传媒体</h2>
-          <span class="tag" id="taskBadge">等待文件</span>
-        </div>
-
-        <div class="drop-zone" id="dropZone" tabindex="0" role="button" aria-label="点击或拖拽上传媒体">
-          <input class="file-input" id="mediaInput" type="file" accept="image/*,video/mp4,video/quicktime,video/x-matroska,video/webm" />
-          <div>
-            <div style="font-size:46px;line-height:1;">📁</div>
-            <strong>点击或拖拽上传图片 / 视频</strong>
-            <p>支持 JPG、PNG、BMP、MP4、MOV、MKV、WEBM；建议文件 ≤ 200MB。</p>
+    <section class="main-grid" id="evaluateArea">
+      <div class="stack">
+        <section class="panel glass">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">上传样本</h2>
+              <p class="panel-desc">单样本评分适合快速检测，A/B 对比适合比较两个版本的质量差异。</p>
+            </div>
+            <div class="segmented" aria-label="评分模式">
+              <button type="button" class="active" data-mode="single">单样本</button>
+              <button type="button" data-mode="compare">A/B 对比</button>
+            </div>
           </div>
-        </div>
 
-        <div class="file-meta" id="fileMeta"></div>
-        <div class="preview" id="previewBox">
-          <img id="imagePreview" alt="上传图片预览" hidden />
-          <video id="videoPreview" controls playsinline hidden></video>
-        </div>
+          <div class="upload-list">
+            <div class="drop-zone" id="dropZoneA" tabindex="0" role="button">
+              <input class="file-input" id="fileA" type="file" accept="image/*,video/mp4,video/quicktime,video/x-matroska,video/webm,video/x-msvideo">
+              <div>
+                <div class="upload-icon">📁</div>
+                <strong>上传待评估图片或视频</strong>
+                <p>支持 JPG、PNG、WEBP、BMP、MP4、MOV、MKV、WEBM、AVI。</p>
+              </div>
+            </div>
+            <div class="sample-card" id="sampleCardA">
+              <div class="preview-box" id="previewA"></div>
+              <div class="sample-info">
+                <div class="sample-name" id="sampleNameA">未选择文件</div>
+                <div class="meta-grid" id="sampleMetaA"></div>
+              </div>
+            </div>
 
-        <div style="margin-top:18px;" class="panel-title">
-          <h2>2. 选择评分模型</h2>
-          <span class="tag" id="modelCountTag">已选 2 个</span>
-        </div>
-        <div class="model-grid" id="modelGrid"></div>
-        <div class="hint">实验要求“两种或以上模型评分”，所以这里默认选中 2 个模型；少于 2 个时不会开始评价。</div>
+            <div id="compareBlock" style="display:none">
+              <div class="drop-zone" id="dropZoneB" tabindex="0" role="button">
+                <input class="file-input" id="fileB" type="file" accept="image/*,video/mp4,video/quicktime,video/x-matroska,video/webm,video/x-msvideo">
+                <div>
+                  <div class="upload-icon">🅱️</div>
+                  <strong>上传对比版本</strong>
+                  <p>可上传压缩前后、增强前后、不同编码参数下的版本。</p>
+                </div>
+              </div>
+              <div class="sample-card" id="sampleCardB" style="margin-top:12px">
+                <div class="preview-box" id="previewB"></div>
+                <div class="sample-info">
+                  <div class="sample-name" id="sampleNameB">未选择文件</div>
+                  <div class="meta-grid" id="sampleMetaB"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
 
-        <div class="progress-wrap" id="progressWrap">
-          <div class="progress-head"><span id="progressText">准备请求</span><span id="progressPercent">0%</span></div>
-          <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-        </div>
-        <div class="btn-row">
-          <button class="btn" id="evaluateBtn" disabled>📊 开始多模型真实评价</button>
-          <button class="btn danger" id="abortBtn" hidden>中止</button>
-        </div>
-        <div class="message" id="messageBox"></div>
-      </article>
+        <section class="panel glass">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">主观盲评</h2>
+              <p class="panel-desc">先给出你自己的质量判断，系统评分完成后会自动显示差异。</p>
+            </div>
+            <button class="button soft" id="lockOpinionBtn" type="button">锁定盲评</button>
+          </div>
+          <div class="interaction-card">
+            <b>你觉得这个样本的质量是几分？</b>
+            <div class="score-row">
+              <input id="subjectiveRange" type="range" min="0" max="5" step="0.1" value="3.5">
+              <div class="subjective-score"><span id="subjectiveScore">3.5</span></div>
+            </div>
+            <div class="tag-cloud" id="tagCloud"></div>
+            <textarea id="userNote" placeholder="可选：写下你观察到的问题，例如画面偏糊、暗部噪声明显、视频有抖动等。"></textarea>
+          </div>
+        </section>
 
-      <section class="panel">
-        <div class="panel-title">
-          <h2>多模型评分结果</h2>
-          <span class="status-pill" id="resultStatus"><span class="dot"></span>等待评价</span>
-        </div>
-
-        <div class="summary-grid">
-          <div class="summary-tile"><span>已完成模型数</span><strong id="doneModels">0</strong></div>
-          <div class="summary-tile"><span>综合 MOS 均值</span><strong id="avgMos">--</strong></div>
-          <div class="summary-tile"><span>最高模型 MOS</span><strong id="bestMos">--</strong></div>
-          <div class="summary-tile"><span>总耗时</span><strong id="totalLatency">--</strong></div>
-        </div>
-
-        <div class="result-table-wrap" id="tableWrap">
-          <div class="empty">上传文件并选择至少两个模型后，点击“开始多模型真实评价”。</div>
-        </div>
-
-        <details>
-          <summary>后端返回 JSON / 调试信息</summary>
-          <pre id="rawJson">尚无数据</pre>
-        </details>
-      </section>
-    </section>
-
-    <section class="panel" style="margin-top:22px;">
-      <div class="panel-title">
-        <h2>历史记录</h2>
-        <button class="btn secondary" id="clearHistoryBtn">清空记录</button>
+        <section class="panel glass">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">模型评委</h2>
+              <p class="panel-desc">默认启用两位评委，满足多模型综合评分展示。</p>
+            </div>
+            <span class="status-line" id="modelStatus"><span class="status-dot"></span>已选 2 个</span>
+          </div>
+          <div class="model-grid" id="modelGrid"></div>
+          <div class="progress-area" id="progressArea">
+            <div class="progress-top"><span id="progressText">准备评估</span><span id="progressPercent">0%</span></div>
+            <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+          </div>
+          <div class="top-actions" style="justify-content:flex-start;margin-top:16px">
+            <button class="button" id="evaluateBtn" type="button" disabled>生成质量报告</button>
+            <button class="button danger" id="cancelBtn" type="button" style="display:none">停止评估</button>
+          </div>
+          <div class="message" id="messageBox"></div>
+        </section>
       </div>
-      <div class="history-list" id="historyList"><div class="empty">暂无真实评价记录。</div></div>
+
+      <div class="stack">
+        <section class="panel glass">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">质量护照</h2>
+              <p class="panel-desc">综合模型分数、主观盲评和媒体体检结果。</p>
+            </div>
+            <div class="top-actions">
+              <button class="button secondary" id="presentationBtn" type="button" disabled>展示模式</button>
+              <button class="button secondary" id="reportBtn" type="button" disabled>生成报告</button>
+            </div>
+          </div>
+          <div id="resultArea">
+            <div class="empty-state">
+              <div>
+                <div style="font-size:48px;margin-bottom:12px">✨</div>
+                <b>等待生成质量报告</b>
+                <p>上传样本并完成评估后，这里会显示综合 MOS、质量等级、模型一致性与改进建议。</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel glass">
+          <div class="tabs" id="tabs">
+            <button class="tab active" data-tab="explain">评分说明</button>
+            <button class="tab" data-tab="bench">模型表现</button>
+            <button class="tab" data-tab="history">历史记录</button>
+          </div>
+
+          <div class="tab-panel active" id="tab-explain">
+            <div class="knowledge-grid">
+              <div class="knowledge-card"><div class="emoji">🧠</div><b>统一网络</b><p>同一套质量评估网络可以处理图片与视频，系统根据输入形态切换评分路径。</p></div>
+              <div class="knowledge-card"><div class="emoji">🖼️</div><b>空间细节</b><p>图像评委重点关注纹理、边缘、压缩伪影、亮度与整体清晰度。</p></div>
+              <div class="knowledge-card"><div class="emoji">🎞️</div><b>时序感知</b><p>视频评委不仅看单帧质量，也关注连续帧之间的稳定性和运动一致性。</p></div>
+              <div class="knowledge-card"><div class="emoji">📊</div><b>体验分</b><p>模型输出会统一呈现为 0–5 的用户体验分，便于理解和汇报展示。</p></div>
+            </div>
+          </div>
+
+          <div class="tab-panel" id="tab-bench">
+            <div class="bench-grid">
+              <div class="bench-card">
+                <div class="bench-head"><div><div class="bench-title">ResNet50 图像质量评委</div><div class="panel-desc">TID2013 图像质量数据</div></div><div class="bench-score">0.9484</div></div>
+                <div class="mini-table">
+                  <div class="mini-row"><span>主要能力</span><strong>图像空间特征</strong></div>
+                  <div class="mini-row"><span>相关性指标</span><strong>SROCC</strong></div>
+                  <div class="mini-row"><span>适用样本</span><strong>图片、单帧画面</strong></div>
+                </div>
+              </div>
+              <div class="bench-card">
+                <div class="bench-head"><div><div class="bench-title">Swin-T 时序质量评委</div><div class="panel-desc">KoNViD-1k 视频质量数据</div></div><div class="bench-score">0.7465</div></div>
+                <div class="mini-table">
+                  <div class="mini-row"><span>主要能力</span><strong>视频时空特征</strong></div>
+                  <div class="mini-row"><span>相关性指标</span><strong>SROCC</strong></div>
+                  <div class="mini-row"><span>适用样本</span><strong>视频、动态画面</strong></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tab-panel" id="tab-history">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">历史记录</h2>
+                <p class="panel-desc">记录保存在当前浏览器中，适合课堂展示多次测试结果。</p>
+              </div>
+              <div class="top-actions">
+                <button class="button secondary" id="exportHistoryBtn" type="button">导出</button>
+                <button class="button danger" id="clearHistoryBtn" type="button">清空</button>
+              </div>
+            </div>
+            <div class="history-list" id="historyList"></div>
+          </div>
+        </section>
+      </div>
     </section>
   </main>
+
+  <div class="modal" id="serviceModal" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2 class="modal-title">评分服务设置</h2>
+        <button class="close-btn" data-close="serviceModal" type="button">×</button>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label for="serviceBaseInput">服务地址</label>
+          <input id="serviceBaseInput" type="text" placeholder="http://127.0.0.1:8000">
+          <div class="field-hint">本地运行服务时通常保持默认即可。</div>
+        </div>
+        <div class="field">
+          <label for="servicePathInput">评价路径</label>
+          <input id="servicePathInput" type="text" placeholder="/evaluate">
+          <div class="field-hint">已经联调完成的项目通常使用默认路径。</div>
+        </div>
+        <div class="top-actions" style="justify-content:flex-start;margin-top:8px">
+          <button class="button" id="saveServiceBtn" type="button">保存设置</button>
+          <button class="button secondary" id="checkServiceBtn" type="button">检测连接</button>
+        </div>
+        <div class="message" id="serviceMessage"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="reportModal" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2 class="modal-title">质量评估报告</h2>
+        <button class="close-btn" data-close="reportModal" type="button">×</button>
+      </div>
+      <div class="report-box" id="reportBox"></div>
+      <div class="top-actions" style="justify-content:flex-start;margin-top:14px">
+        <button class="button" id="downloadReportBtn" type="button">下载报告</button>
+        <button class="button secondary" id="copyReportBtn" type="button">复制文本</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="presentationModal" aria-hidden="true">
+    <div class="modal-card presentation">
+      <button class="close-btn" data-close="presentationModal" type="button" style="position:absolute;right:24px;top:24px">×</button>
+      <h2 class="presentation-title">Deep-VQA 质量评估结果</h2>
+      <div class="score-card" style="margin:24px auto;max-width:520px">
+        <div class="score-label">综合体验分</div>
+        <div class="score-main" id="presentationScore">--</div>
+        <div class="score-caption" id="presentationCaption">等待评估结果</div>
+      </div>
+      <p class="presentation-subtitle" id="presentationText">上传样本并完成评分后，可在这里进行课堂或答辩展示。</p>
+    </div>
+  </div>
 
   <script>
     const MODEL_OPTIONS = [
       {
         id: "resnet_iqa",
-        label: "IQAVQANet · ResNet50-IQA",
-        backendModel: "resnet_iqa",
-        backbone: "resnet50",
+        name: "ResNet50 图像质量评委",
+        displayName: "IQAVQANet · ResNet50",
         task: "iqa",
+        mediaFocus: "图像空间细节",
         dataset: "TID2013",
-        desc: "仓库 config/models/resnet_iqa.yaml：面向图像质量评价，Backbone 使用 ResNet50。"
+        benchmark: "SROCC 0.9484",
+        backbone: "resnet50",
+        accent: "🖼️",
+        desc: "更关注清晰度、纹理、边缘和压缩伪影等空间质量线索。"
       },
       {
         id: "timeswin_vqa",
-        label: "IQAVQANet · Swin-T-VQA",
-        backendModel: "timeswin_vqa",
-        backbone: "swin_t",
+        name: "Swin-T 时序质量评委",
+        displayName: "IQAVQANet · Swin-T + Transformer",
         task: "vqa",
+        mediaFocus: "视频时序稳定",
         dataset: "KoNViD-1k",
-        desc: "仓库 config/models/timeswin_vqa.yaml：面向视频质量评价，Swin-T 提取空间特征，并使用 Transformer 做时序融合。"
+        benchmark: "SROCC 0.7465",
+        backbone: "swin_t",
+        accent: "🎞️",
+        desc: "更关注视频连续帧之间的稳定性、运动一致性和动态画面观感。"
       }
     ];
 
-    const STORAGE_CONFIG = "deep_vqa_multimodel_api_config_v1";
-    const STORAGE_HISTORY = "deep_vqa_multimodel_history_v1";
+    const QUALITY_TAGS = ["模糊", "噪声", "压缩块", "过曝", "偏暗", "颜色失真", "抖动", "拖影", "卡顿", "主体不清", "观感自然"];
+    const STORAGE_CONFIG = "deep_vqa_service_config_v3";
+    const STORAGE_HISTORY = "deep_vqa_quality_history_v3";
 
     const $ = id => document.getElementById(id);
-    const els = {
-      apiBase: $("apiBaseInput"), apiPath: $("apiPathInput"), backendStatus: $("backendStatus"),
-      saveConfig: $("saveConfigBtn"), checkBackend: $("checkBackendBtn"), dropZone: $("dropZone"), mediaInput: $("mediaInput"),
-      fileMeta: $("fileMeta"), previewBox: $("previewBox"), imagePreview: $("imagePreview"), videoPreview: $("videoPreview"),
-      taskBadge: $("taskBadge"), modelGrid: $("modelGrid"), modelCountTag: $("modelCountTag"), progressWrap: $("progressWrap"),
-      progressText: $("progressText"), progressPercent: $("progressPercent"), progressFill: $("progressFill"), evaluateBtn: $("evaluateBtn"),
-      abortBtn: $("abortBtn"), message: $("messageBox"), resultStatus: $("resultStatus"), doneModels: $("doneModels"), avgMos: $("avgMos"),
-      bestMos: $("bestMos"), totalLatency: $("totalLatency"), tableWrap: $("tableWrap"), rawJson: $("rawJson"),
-      clearHistory: $("clearHistoryBtn"), historyList: $("historyList")
+
+    const ui = {
+      themeBtn: $("themeBtn"), serviceBtn: $("serviceBtn"), jumpEvaluateBtn: $("jumpEvaluateBtn"), serviceStatus: $("serviceStatus"),
+      dropZoneA: $("dropZoneA"), dropZoneB: $("dropZoneB"), fileA: $("fileA"), fileB: $("fileB"), compareBlock: $("compareBlock"),
+      sampleCardA: $("sampleCardA"), sampleCardB: $("sampleCardB"), previewA: $("previewA"), previewB: $("previewB"),
+      sampleNameA: $("sampleNameA"), sampleNameB: $("sampleNameB"), sampleMetaA: $("sampleMetaA"), sampleMetaB: $("sampleMetaB"),
+      subjectiveRange: $("subjectiveRange"), subjectiveScore: $("subjectiveScore"), lockOpinionBtn: $("lockOpinionBtn"), tagCloud: $("tagCloud"), userNote: $("userNote"),
+      modelGrid: $("modelGrid"), modelStatus: $("modelStatus"), evaluateBtn: $("evaluateBtn"), cancelBtn: $("cancelBtn"),
+      progressArea: $("progressArea"), progressText: $("progressText"), progressPercent: $("progressPercent"), progressFill: $("progressFill"), messageBox: $("messageBox"),
+      resultArea: $("resultArea"), reportBtn: $("reportBtn"), presentationBtn: $("presentationBtn"),
+      tabs: $("tabs"), historyList: $("historyList"), exportHistoryBtn: $("exportHistoryBtn"), clearHistoryBtn: $("clearHistoryBtn"),
+      serviceModal: $("serviceModal"), serviceBaseInput: $("serviceBaseInput"), servicePathInput: $("servicePathInput"), serviceMessage: $("serviceMessage"), saveServiceBtn: $("saveServiceBtn"), checkServiceBtn: $("checkServiceBtn"),
+      reportModal: $("reportModal"), reportBox: $("reportBox"), downloadReportBtn: $("downloadReportBtn"), copyReportBtn: $("copyReportBtn"),
+      presentationModal: $("presentationModal"), presentationScore: $("presentationScore"), presentationCaption: $("presentationCaption"), presentationText: $("presentationText")
     };
 
-    const state = { file: null, mediaType: null, currentObjectUrl: null, activeController: null, history: [] };
+    const state = {
+      mode: "single",
+      samples: { A: null, B: null },
+      urls: { A: null, B: null },
+      selectedTags: new Set(),
+      opinionLocked: false,
+      currentController: null,
+      history: [],
+      lastReport: null,
+      lastReportText: ""
+    };
 
     init();
 
     function init() {
-      loadConfig();
-      renderModelOptions();
+      loadServiceConfig();
+      renderModelCards();
+      renderTags();
       loadHistory();
       bindEvents();
-      updateEvaluateButton();
+      updateActionState();
     }
 
-    function loadConfig() {
-      const saved = safeJson(localStorage.getItem(STORAGE_CONFIG), {});
-      els.apiBase.value = saved.baseUrl ?? "http://127.0.0.1:8000";
-      els.apiPath.value = saved.path ?? "/evaluate";
+    function bindEvents() {
+      ui.themeBtn.addEventListener("click", toggleTheme);
+      ui.serviceBtn.addEventListener("click", () => openModal("serviceModal"));
+      ui.jumpEvaluateBtn.addEventListener("click", () => $("evaluateArea").scrollIntoView({ behavior: "smooth" }));
+      document.querySelectorAll("[data-close]").forEach(btn => btn.addEventListener("click", () => closeModal(btn.dataset.close)));
+      document.querySelectorAll(".segmented button").forEach(btn => btn.addEventListener("click", () => setMode(btn.dataset.mode)));
+      setupDrop(ui.dropZoneA, ui.fileA, "A");
+      setupDrop(ui.dropZoneB, ui.fileB, "B");
+      ui.subjectiveRange.addEventListener("input", () => ui.subjectiveScore.textContent = Number(ui.subjectiveRange.value).toFixed(1));
+      ui.lockOpinionBtn.addEventListener("click", toggleOpinionLock);
+      ui.evaluateBtn.addEventListener("click", evaluateSamples);
+      ui.cancelBtn.addEventListener("click", cancelEvaluation);
+      ui.saveServiceBtn.addEventListener("click", saveServiceConfig);
+      ui.checkServiceBtn.addEventListener("click", checkService);
+      ui.reportBtn.addEventListener("click", showReport);
+      ui.presentationBtn.addEventListener("click", showPresentation);
+      ui.downloadReportBtn.addEventListener("click", downloadReport);
+      ui.copyReportBtn.addEventListener("click", copyReport);
+      ui.exportHistoryBtn.addEventListener("click", exportHistory);
+      ui.clearHistoryBtn.addEventListener("click", clearHistory);
+      ui.tabs.addEventListener("click", event => {
+        const tab = event.target.closest(".tab");
+        if (tab) setTab(tab.dataset.tab);
+      });
+      document.querySelectorAll(".modal").forEach(modal => modal.addEventListener("click", event => {
+        if (event.target === modal) closeModal(modal.id);
+      }));
     }
 
-    function saveConfig() {
-      localStorage.setItem(STORAGE_CONFIG, JSON.stringify({ baseUrl: els.apiBase.value.trim(), path: normalizePath(els.apiPath.value.trim()) }));
-      showMessage("接口配置已保存。", "success");
+    function setupDrop(zone, input, slot) {
+      zone.addEventListener("click", () => input.click());
+      zone.addEventListener("keydown", event => {
+        if (event.key === "Enter" || event.key === " ") input.click();
+      });
+      zone.addEventListener("dragover", event => {
+        event.preventDefault();
+        zone.classList.add("dragging");
+      });
+      zone.addEventListener("dragleave", () => zone.classList.remove("dragging"));
+      zone.addEventListener("drop", event => {
+        event.preventDefault();
+        zone.classList.remove("dragging");
+        handleFile(slot, event.dataTransfer.files && event.dataTransfer.files[0]);
+      });
+      input.addEventListener("change", event => handleFile(slot, event.target.files && event.target.files[0]));
     }
 
-    function renderModelOptions() {
-      els.modelGrid.innerHTML = MODEL_OPTIONS.map(model => `
+    function toggleTheme() {
+      const dark = document.documentElement.getAttribute("data-theme") === "dark";
+      if (dark) {
+        document.documentElement.removeAttribute("data-theme");
+        ui.themeBtn.textContent = "深色模式";
+      } else {
+        document.documentElement.setAttribute("data-theme", "dark");
+        ui.themeBtn.textContent = "浅色模式";
+      }
+    }
+
+    function setMode(mode) {
+      state.mode = mode;
+      document.querySelectorAll(".segmented button").forEach(btn => btn.classList.toggle("active", btn.dataset.mode === mode));
+      ui.compareBlock.style.display = mode === "compare" ? "block" : "none";
+      updateActionState();
+    }
+
+    function renderModelCards() {
+      ui.modelGrid.innerHTML = MODEL_OPTIONS.map(model => `
         <label class="model-card">
-          <input type="checkbox" value="${model.id}" checked />
+          <input type="checkbox" value="${escapeHtml(model.id)}" checked>
           <div>
-            <div class="model-name">${escapeHtml(model.label)}</div>
-            <div class="model-desc">${escapeHtml(model.desc)}</div>
-            <div class="model-meta">
-              <span class="chip">model=${escapeHtml(model.backendModel)}</span>
-              <span class="chip">${escapeHtml(model.backbone)}</span>
-              <span class="chip">${escapeHtml(model.task.toUpperCase())}</span>
+            <div class="model-name">${model.accent} ${escapeHtml(model.name)}</div>
+            <div class="model-line">${escapeHtml(model.desc)}</div>
+            <div class="chips">
+              <span class="chip">${escapeHtml(model.displayName)}</span>
               <span class="chip">${escapeHtml(model.dataset)}</span>
+              <span class="chip">${escapeHtml(model.benchmark)}</span>
             </div>
           </div>
         </label>
       `).join("");
-      els.modelGrid.querySelectorAll("input[type='checkbox']").forEach(input => input.addEventListener("change", updateModelCount));
-      updateModelCount();
+      ui.modelGrid.querySelectorAll("input").forEach(input => input.addEventListener("change", updateModelStatus));
+      updateModelStatus();
     }
 
-    function bindEvents() {
-      els.saveConfig.addEventListener("click", saveConfig);
-      els.checkBackend.addEventListener("click", checkBackend);
-      els.dropZone.addEventListener("click", () => els.mediaInput.click());
-      els.dropZone.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") els.mediaInput.click(); });
-      els.dropZone.addEventListener("dragover", e => { e.preventDefault(); els.dropZone.classList.add("drag"); });
-      els.dropZone.addEventListener("dragleave", () => els.dropZone.classList.remove("drag"));
-      els.dropZone.addEventListener("drop", e => { e.preventDefault(); els.dropZone.classList.remove("drag"); handleFile(e.dataTransfer.files?.[0]); });
-      els.mediaInput.addEventListener("change", e => handleFile(e.target.files?.[0]));
-      els.evaluateBtn.addEventListener("click", evaluateMultiModel);
-      els.abortBtn.addEventListener("click", abortRequests);
-      els.clearHistory.addEventListener("click", () => { state.history = []; saveHistory(); renderHistory(); });
+    function renderTags() {
+      ui.tagCloud.innerHTML = QUALITY_TAGS.map(tag => `<button class="quality-tag" type="button" data-tag="${escapeHtml(tag)}">${escapeHtml(tag)}</button>`).join("");
+      ui.tagCloud.addEventListener("click", event => {
+        const btn = event.target.closest(".quality-tag");
+        if (!btn) return;
+        const tag = btn.dataset.tag;
+        if (state.selectedTags.has(tag)) state.selectedTags.delete(tag);
+        else state.selectedTags.add(tag);
+        btn.classList.toggle("active", state.selectedTags.has(tag));
+      });
     }
 
     function getSelectedModels() {
-      const checked = Array.from(els.modelGrid.querySelectorAll("input[type='checkbox']:checked")).map(input => input.value);
-      return MODEL_OPTIONS.filter(model => checked.includes(model.id));
+      const ids = Array.from(ui.modelGrid.querySelectorAll("input:checked")).map(input => input.value);
+      return MODEL_OPTIONS.filter(model => ids.includes(model.id));
     }
 
-    function updateModelCount() {
+    function updateModelStatus() {
       const count = getSelectedModels().length;
-      els.modelCountTag.textContent = `已选 ${count} 个`;
-      updateEvaluateButton();
+      ui.modelStatus.innerHTML = `<span class="status-dot"></span>已选 ${count} 个`;
+      ui.modelStatus.className = `status-line ${count >= 2 ? "ok" : "fail"}`;
+      updateActionState();
     }
 
-    function updateEvaluateButton() {
-      els.evaluateBtn.disabled = !state.file || getSelectedModels().length < 2;
-    }
-
-    function handleFile(file) {
+    async function handleFile(slot, file) {
       if (!file) return;
-      const isImage = file.type.startsWith("image/") || /\.(jpg|jpeg|png|bmp|webp)$/i.test(file.name);
-      const isVideo = file.type.startsWith("video/") || /\.(mp4|mov|mkv|webm)$/i.test(file.name);
-      if (!isImage && !isVideo) return showMessage("仅支持图片或视频文件。", "error");
-      if (file.size > 300 * 1024 * 1024) return showMessage("文件过大，请控制在 300MB 以内。", "error");
-
-      if (state.currentObjectUrl) URL.revokeObjectURL(state.currentObjectUrl);
-      state.file = file;
-      state.mediaType = isImage ? "image" : "video";
-      state.currentObjectUrl = URL.createObjectURL(file);
-
-      els.fileMeta.innerHTML = `
-        <div class="meta-item"><span>文件名</span><b>${escapeHtml(file.name)}</b></div>
-        <div class="meta-item"><span>类型</span><b>${state.mediaType === "image" ? "图片 IQA" : "视频 VQA"}</b></div>
-        <div class="meta-item"><span>大小</span><b>${formatBytes(file.size)}</b></div>
-        <div class="meta-item"><span>MIME</span><b>${escapeHtml(file.type || "未知")}</b></div>
-      `;
-      els.taskBadge.textContent = state.mediaType === "image" ? "图片 IQA" : "视频 VQA";
-      els.previewBox.style.display = "flex";
-      if (state.mediaType === "image") {
-        els.videoPreview.hidden = true;
-        els.videoPreview.removeAttribute("src");
-        els.imagePreview.hidden = false;
-        els.imagePreview.src = state.currentObjectUrl;
-      } else {
-        els.imagePreview.hidden = true;
-        els.imagePreview.removeAttribute("src");
-        els.videoPreview.hidden = false;
-        els.videoPreview.src = state.currentObjectUrl;
-      }
-      resetResults();
-      updateEvaluateButton();
-      showMessage("媒体已加载。请选择至少两个模型后开始真实后端评价。", "success");
-    }
-
-    async function checkBackend() {
-      setStatus(els.backendStatus, "检测中", "warn");
-      const base = els.apiBase.value.trim().replace(/\/$/, "");
-      const healthUrl = `${base}/health`;
-      try {
-        const res = await fetch(healthUrl, { method: "GET" });
-        if (res.ok) {
-          setStatus(els.backendStatus, "后端在线", "ok");
-          showMessage("后端 /health 检测成功。", "success");
-        } else {
-          setStatus(els.backendStatus, "可访问", "warn");
-          showMessage("后端可访问，但 /health 未返回 2xx。只要评价接口可用，不影响使用。", "info");
-        }
-      } catch (err) {
-        setStatus(els.backendStatus, "连接失败", "fail");
-        showMessage(`连接失败：${err.message}`, "error");
-      }
-    }
-
-    async function evaluateMultiModel() {
-      const models = getSelectedModels();
-      if (!state.file) return showMessage("请先上传文件。", "error");
-      if (models.length < 2) return showMessage("实验要求两种或以上模型评分，请至少选择 2 个模型。", "error");
-
-      resetResults();
-      setStatus(els.resultStatus, "评价中", "warn");
-      setStatus(els.backendStatus, "评价中", "warn");
-      els.evaluateBtn.disabled = true;
-      els.abortBtn.hidden = false;
-      els.progressWrap.style.display = "block";
-      setProgress(0, "准备逐模型请求");
-      showMessage("正在逐个调用后端真实模型接口。前端不会生成 Mock 分数。", "info");
-
-      const started = performance.now();
-      const debug = [];
-      const results = [];
-      let aborted = false;
-
-      for (let i = 0; i < models.length; i++) {
-        const model = models[i];
-        const startOne = performance.now();
-        setProgress(Math.round((i / models.length) * 100), `正在评价 ${model.label}`);
-        try {
-          const raw = await postEvaluateForModel(model);
-          const elapsed = performance.now() - startOne;
-          debug.push({ request_model: model.backendModel, response: raw });
-          const normalized = normalizeSingleResult(raw, model, elapsed);
-          results.push(normalized);
-        } catch (err) {
-          if (err.name === "AbortError") { aborted = true; break; }
-          results.push({
-            modelId: model.id,
-            modelName: model.label,
-            backendModel: model.backendModel,
-            backbone: model.backbone,
-            task: model.task,
-            dataset: model.dataset,
-            mos: null,
-            normalized: null,
-            latencyMs: null,
-            status: "失败",
-            note: err.message,
-            raw: null
-          });
-          debug.push({ request_model: model.backendModel, error: err.message });
-        }
-        setProgress(Math.round(((i + 1) / models.length) * 100), `已完成 ${i + 1}/${models.length}`);
-      }
-
-      const elapsedTotal = performance.now() - started;
-      els.abortBtn.hidden = true;
-      els.evaluateBtn.disabled = false;
-      state.activeController = null;
-
-      if (aborted) {
-        setStatus(els.resultStatus, "已中止", "fail");
-        showMessage("请求已中止。", "error");
+      const mediaType = detectMediaType(file);
+      if (!mediaType) {
+        showMessage(ui.messageBox, "暂不支持这个文件格式，请上传常见图片或视频文件。", "error");
         return;
       }
-
-      renderResults(results, elapsedTotal, debug);
-      const successCount = results.filter(r => Number.isFinite(r.mos)).length;
-      if (successCount >= 2) {
-        setStatus(els.resultStatus, "多模型完成", "ok");
-        setStatus(els.backendStatus, "评价成功", "ok");
-        showMessage(`已得到 ${successCount} 个真实后端模型分数，满足“两种或以上模型评分”展示要求。`, "success");
-        addHistory(results, elapsedTotal);
-      } else if (successCount === 1) {
-        setStatus(els.resultStatus, "仅一模型成功", "warn");
-        showMessage("只得到 1 个有效模型分数，不满足“两种或以上模型评分”。请确认后端支持 model 参数并加载两个 checkpoint。", "error");
-      } else {
-        setStatus(els.resultStatus, "评价失败", "fail");
-        setStatus(els.backendStatus, "评价失败", "fail");
-        showMessage("没有得到有效模型分数。请检查后端接口、模型文件和 JSON 返回字段。", "error");
+      if (file.size > 300 * 1024 * 1024) {
+        showMessage(ui.messageBox, "文件过大，建议控制在 300MB 以内。", "error");
+        return;
       }
+      if (state.urls[slot]) URL.revokeObjectURL(state.urls[slot]);
+      const url = URL.createObjectURL(file);
+      state.urls[slot] = url;
+      state.samples[slot] = { file, url, mediaType, profile: null };
+      renderSample(slot);
+      try {
+        const profile = await inspectMedia(file, url, mediaType);
+        state.samples[slot].profile = profile;
+        renderSample(slot);
+      } catch (error) {
+        state.samples[slot].profile = { note: "浏览器未能完成本地体检" };
+        renderSample(slot);
+      }
+      showMessage(ui.messageBox, "样本已加载，可以继续主观盲评或直接生成质量报告。", "success");
+      clearResult();
+      updateActionState();
     }
 
-    async function postEvaluateForModel(model) {
-      const base = els.apiBase.value.trim().replace(/\/$/, "");
-      const path = normalizePath(els.apiPath.value.trim());
-      const url = `${base}${path}`;
+    function renderSample(slot) {
+      const sample = state.samples[slot];
+      const card = slot === "A" ? ui.sampleCardA : ui.sampleCardB;
+      const preview = slot === "A" ? ui.previewA : ui.previewB;
+      const nameEl = slot === "A" ? ui.sampleNameA : ui.sampleNameB;
+      const metaEl = slot === "A" ? ui.sampleMetaA : ui.sampleMetaB;
+      if (!sample) return;
+      card.classList.add("show");
+      nameEl.textContent = sample.file.name;
+      preview.innerHTML = sample.mediaType === "image"
+        ? `<img src="${sample.url}" alt="上传预览">`
+        : `<video src="${sample.url}" controls playsinline muted></video>`;
+      const profile = sample.profile || {};
+      const mediaLabel = sample.mediaType === "image" ? "图片" : "视频";
+      const sizeText = formatBytes(sample.file.size);
+      const dimensionText = profile.width && profile.height ? `${profile.width} × ${profile.height}` : "分析中";
+      const extraText = sample.mediaType === "video" && profile.duration ? `${formatNumber(profile.duration, 1)} 秒` : profile.brightness !== undefined ? `亮度 ${formatNumber(profile.brightness, 0)}` : "分析中";
+      const contrastText = profile.contrast !== undefined ? `对比 ${formatNumber(profile.contrast, 0)}` : profile.frames ? `${profile.frames} 帧采样` : sample.file.type || "未知";
+      metaEl.innerHTML = `
+        <div class="mini-stat"><span>类型</span><b>${mediaLabel}</b></div>
+        <div class="mini-stat"><span>大小</span><b>${sizeText}</b></div>
+        <div class="mini-stat"><span>尺寸</span><b>${dimensionText}</b></div>
+        <div class="mini-stat"><span>体检</span><b>${extraText}</b></div>
+        <div class="mini-stat"><span>观感线索</span><b>${contrastText}</b></div>
+        <div class="mini-stat"><span>文件名</span><b>${escapeHtml(sample.file.name.split(".").pop() || "")}</b></div>
+      `;
+    }
+
+    function detectMediaType(file) {
+      const name = file.name.toLowerCase();
+      if (file.type.startsWith("image/") || /\.(jpg|jpeg|png|bmp|webp|tiff)$/.test(name)) return "image";
+      if (file.type.startsWith("video/") || /\.(mp4|mov|mkv|webm|avi|wmv)$/.test(name)) return "video";
+      return "";
+    }
+
+    function inspectMedia(file, url, mediaType) {
+      return mediaType === "image" ? inspectImage(url) : inspectVideo(url);
+    }
+
+    function inspectImage(url) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          const stats = analyzeCanvasFrame(img, img.naturalWidth, img.naturalHeight);
+          resolve({ width: img.naturalWidth, height: img.naturalHeight, ...stats });
+        };
+        img.onerror = reject;
+        img.src = url;
+      });
+    }
+
+    function inspectVideo(url) {
+      return new Promise((resolve, reject) => {
+        const video = document.createElement("video");
+        video.preload = "metadata";
+        video.muted = true;
+        video.playsInline = true;
+        video.onloadedmetadata = () => {
+          const result = { width: video.videoWidth, height: video.videoHeight, duration: video.duration || 0 };
+          video.currentTime = Math.min(0.12, Math.max(0, (video.duration || 1) / 10));
+          video.onseeked = () => {
+            try {
+              const stats = analyzeCanvasFrame(video, video.videoWidth, video.videoHeight);
+              resolve({ ...result, ...stats, frames: "首帧" });
+            } catch (error) {
+              resolve(result);
+            }
+          };
+        };
+        video.onerror = reject;
+        video.src = url;
+      });
+    }
+
+    function analyzeCanvasFrame(source, width, height) {
+      const maxSide = 180;
+      const scale = Math.min(1, maxSide / Math.max(width, height));
+      const w = Math.max(1, Math.round(width * scale));
+      const h = Math.max(1, Math.round(height * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      ctx.drawImage(source, 0, 0, w, h);
+      const data = ctx.getImageData(0, 0, w, h).data;
+      let sum = 0;
+      let sumSq = 0;
+      let edge = 0;
+      let prev = null;
+      for (let i = 0; i < data.length; i += 4) {
+        const y = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+        sum += y;
+        sumSq += y * y;
+        if (prev !== null) edge += Math.abs(y - prev);
+        prev = y;
+      }
+      const n = data.length / 4;
+      const mean = sum / n;
+      const variance = Math.max(0, sumSq / n - mean * mean);
+      const contrast = Math.sqrt(variance);
+      const edgeEnergy = edge / Math.max(1, n - 1);
+      return { brightness: mean, contrast, edgeEnergy };
+    }
+
+    function updateActionState() {
+      const hasA = Boolean(state.samples.A);
+      const hasB = state.mode === "single" || Boolean(state.samples.B);
+      const enoughModels = getSelectedModels().length >= 2;
+      ui.evaluateBtn.disabled = !(hasA && hasB && enoughModels);
+    }
+
+    function toggleOpinionLock() {
+      state.opinionLocked = !state.opinionLocked;
+      ui.subjectiveRange.disabled = state.opinionLocked;
+      ui.userNote.disabled = state.opinionLocked;
+      ui.lockOpinionBtn.textContent = state.opinionLocked ? "修改盲评" : "锁定盲评";
+      ui.lockOpinionBtn.classList.toggle("secondary", state.opinionLocked);
+    }
+
+    async function evaluateSamples() {
+      const models = getSelectedModels();
+      const samples = getActiveSamples();
+      if (!samples.length) return;
+      if (models.length < 2) {
+        showMessage(ui.messageBox, "请至少保留两位模型评委。", "error");
+        return;
+      }
+      ui.evaluateBtn.disabled = true;
+      ui.cancelBtn.style.display = "inline-flex";
+      ui.progressArea.classList.add("show");
+      showMessage(ui.messageBox, "正在生成质量报告，请稍候。", "info");
+      setProgress(0, "准备评估");
+      const total = models.length * samples.length;
+      const results = [];
+      let completed = 0;
+      let interrupted = false;
+      const startedAt = performance.now();
+      for (const sampleItem of samples) {
+        for (const model of models) {
+          setProgress(Math.round((completed / total) * 100), `正在评估 ${sampleItem.label} · ${model.name}`);
+          try {
+            const oneStart = performance.now();
+            const response = await callService(sampleItem.sample.file, sampleItem.sample.mediaType, model);
+            const elapsed = performance.now() - oneStart;
+            results.push(normalizeResult(response, model, sampleItem, elapsed));
+          } catch (error) {
+            if (error.name === "AbortError") {
+              interrupted = true;
+              break;
+            }
+            results.push({
+              sampleKey: sampleItem.key,
+              sampleLabel: sampleItem.label,
+              fileName: sampleItem.sample.file.name,
+              modelId: model.id,
+              modelName: model.name,
+              displayName: model.displayName,
+              mediaFocus: model.mediaFocus,
+              mos: null,
+              normalized: null,
+              latencyMs: null,
+              status: "未完成",
+              reason: humanizeError(error.message)
+            });
+          }
+          completed += 1;
+          setProgress(Math.round((completed / total) * 100), `已完成 ${completed}/${total}`);
+        }
+        if (interrupted) break;
+      }
+      ui.cancelBtn.style.display = "none";
+      state.currentController = null;
+      if (interrupted) {
+        ui.evaluateBtn.disabled = false;
+        showMessage(ui.messageBox, "评估已停止。", "error");
+        return;
+      }
+      const elapsedTotal = performance.now() - startedAt;
+      setProgress(100, "报告已生成");
+      const report = buildReportObject(samples, results, elapsedTotal);
+      state.lastReport = report;
+      renderReport(report);
+      addHistory(report);
+      showMessage(ui.messageBox, "质量报告已生成。", "success");
+      ui.evaluateBtn.disabled = false;
+      ui.reportBtn.disabled = false;
+      ui.presentationBtn.disabled = false;
+    }
+
+    function getActiveSamples() {
+      const list = [];
+      if (state.samples.A) list.push({ key: "A", label: state.mode === "compare" ? "样本 A" : "当前样本", sample: state.samples.A });
+      if (state.mode === "compare" && state.samples.B) list.push({ key: "B", label: "样本 B", sample: state.samples.B });
+      return list;
+    }
+
+    async function callService(file, mediaType, model) {
+      const config = getServiceConfig();
       const form = new FormData();
-      form.append("file", state.file);
-      form.append("media_type", state.mediaType);
-      form.append("task_type", state.mediaType === "image" ? "iqa" : "vqa");
-      form.append("model", model.backendModel);
-      form.append("model_name", model.backendModel);
+      form.append("file", file);
+      form.append("media_type", mediaType);
+      form.append("task_type", mediaType === "image" ? "iqa" : "vqa");
+      form.append("model", model.id);
+      form.append("model_name", model.displayName);
       form.append("backbone", model.backbone);
-      form.append("requested_models", JSON.stringify(getSelectedModels().map(m => m.backendModel)));
-
+      form.append("model_task_type", model.task);
       const controller = new AbortController();
-      state.activeController = controller;
-      const res = await fetch(url, { method: "POST", body: form, signal: controller.signal });
-      const text = await res.text();
-      let json;
-      try { json = text ? JSON.parse(text) : {}; }
-      catch { throw new Error(`后端没有返回合法 JSON：${text.slice(0, 160)}`); }
-      if (!res.ok) {
-        const msg = json.detail || json.error || json.message || res.statusText;
-        throw new Error(`HTTP ${res.status}: ${msg}`);
+      state.currentController = controller;
+      const response = await fetch(`${config.base}${config.path}`, { method: "POST", body: form, signal: controller.signal });
+      const text = await response.text();
+      let payload = {};
+      if (text) {
+        try {
+          payload = JSON.parse(text);
+        } catch (error) {
+          throw new Error("评分服务返回内容无法识别");
+        }
       }
-      return json;
+      if (!response.ok) {
+        throw new Error(payload.detail || payload.message || payload.error || "评分服务暂时不可用");
+      }
+      return payload;
     }
 
-    function normalizeSingleResult(response, requestedModel, elapsedMs) {
-      const payload = unwrapPayload(response);
-      const metricSource = payload.metrics || payload.eval_metrics || payload.training_metrics || payload;
-      const score = extractScalarScore(payload);
-      const modelText = pickText(payload, ["model", "model_name", "checkpoint", "version"]);
-      const backboneText = pickText(payload, ["backbone"]);
-      const taskText = pickText(payload, ["task_type", "task", "mode", "media_type"]);
-      const latency = toNumber(payload.inference_ms ?? payload.latency_ms ?? payload.elapsed_ms ?? payload.time_ms) ?? elapsedMs;
-
+    function normalizeResult(response, model, sampleItem, elapsedMs) {
+      const payload = unwrap(response);
+      const extracted = extractScore(payload);
+      const latency = toNumber(payload.inference_ms) ?? toNumber(payload.latency_ms) ?? toNumber(payload.elapsed_ms) ?? elapsedMs;
       return {
-        modelId: requestedModel.id,
-        modelName: modelText || requestedModel.label,
-        backendModel: requestedModel.backendModel,
-        backbone: backboneText || requestedModel.backbone,
-        task: taskText || requestedModel.task,
-        dataset: requestedModel.dataset,
-        mos: score.mos,
-        normalized: score.normalized,
-        sourceKey: score.sourceKey,
+        sampleKey: sampleItem.key,
+        sampleLabel: sampleItem.label,
+        fileName: sampleItem.sample.file.name,
+        modelId: model.id,
+        modelName: model.name,
+        displayName: payload.model_name || model.displayName,
+        mediaFocus: model.mediaFocus,
+        dataset: model.dataset,
+        mos: extracted.mos,
+        normalized: extracted.normalized,
+        source: extracted.source,
         latencyMs: latency,
-        metrics: {
-          plcc: toNumber(metricSource.plcc),
-          srocc: toNumber(metricSource.srocc),
-          rmse: toNumber(metricSource.rmse),
-          r2: toNumber(metricSource.r2),
-          mae: toNumber(metricSource.mae),
-          krocc: toNumber(metricSource.krocc)
-        },
-        status: Number.isFinite(score.mos) ? "成功" : "无分数",
-        note: Number.isFinite(score.mos) ? "真实后端返回" : "JSON 中未识别 score / quality_score / mos / overall 字段",
-        raw: response
+        status: Number.isFinite(extracted.mos) ? "已完成" : "未识别分数",
+        reason: Number.isFinite(extracted.mos) ? "评分完成" : "没有获取到有效质量分数"
       };
     }
 
-    function unwrapPayload(response) {
+    function unwrap(response) {
       if (!response || typeof response !== "object") return {};
       if (response.data && typeof response.data === "object" && !Array.isArray(response.data)) return response.data;
       if (response.result && typeof response.result === "object" && !Array.isArray(response.result)) return response.result;
@@ -691,115 +1490,277 @@
       return response;
     }
 
-    function extractScalarScore(payload) {
+    function extractScore(payload) {
       const candidates = [
-        ["mos", payload.mos], ["mos_score", payload.mos_score], ["quality_mos", payload.quality_mos],
-        ["overall_mos", payload.overall_mos], ["overall", payload.overall], ["quality_score", payload.quality_score],
-        ["score", payload.score], ["normalized_score", payload.normalized_score], ["prediction", payload.prediction],
-        ["pred", payload.pred], ["output", payload.output]
+        ["mos_score", payload.mos_score], ["mos", payload.mos], ["quality_mos", payload.quality_mos], ["overall", payload.overall],
+        ["score", payload.score], ["raw_score", payload.raw_score], ["quality_score", payload.quality_score], ["prediction", payload.prediction]
       ];
       if (payload.scores && typeof payload.scores === "object" && !Array.isArray(payload.scores)) {
-        for (const [key, value] of Object.entries(payload.scores)) candidates.push([`scores.${key}`, value]);
+        Object.entries(payload.scores).forEach(([key, value]) => candidates.push([key, value]));
       }
       for (const [key, value] of candidates) {
-        const n = toNumber(value);
-        if (n !== null) return scoreFromNumber(n, key);
+        const number = toNumber(value);
+        if (number !== null) return scoreToMos(number, key);
       }
-      return { mos: null, normalized: null, sourceKey: "未返回" };
+      return { mos: null, normalized: null, source: "无" };
     }
 
-    function scoreFromNumber(number, key) {
-      const k = String(key).toLowerCase();
-      let mos, normalized;
-      if (k.includes("mos") || (k.includes("overall") && number > 1)) {
-        mos = clamp(number, 0, 5);
-        normalized = mos / 5;
-      } else if (number <= 1.000001) {
-        normalized = clamp(number, 0, 1);
-        mos = normalized * 5;
-      } else {
-        mos = clamp(number, 0, 5);
-        normalized = mos / 5;
+    function scoreToMos(value, key) {
+      const name = String(key).toLowerCase();
+      if (name.includes("mos") || name.includes("overall") || value > 1.000001) {
+        const mos = clamp(value, 0, 5);
+        return { mos, normalized: mos / 5, source: "体验分" };
       }
-      return { mos, normalized, sourceKey: key };
+      const normalized = clamp(value, 0, 1);
+      return { mos: normalized * 5, normalized, source: "标准化分" };
     }
 
-    function renderResults(results, elapsedTotal, debug) {
-      const valid = results.filter(r => Number.isFinite(r.mos));
-      const avg = valid.length ? average(valid.map(r => r.mos)) : null;
-      const best = valid.length ? Math.max(...valid.map(r => r.mos)) : null;
-      els.doneModels.textContent = String(valid.length);
-      els.avgMos.textContent = avg === null ? "--" : formatNumber(avg, 2);
-      els.bestMos.textContent = best === null ? "--" : formatNumber(best, 2);
-      els.totalLatency.textContent = `${formatNumber(elapsedTotal / 1000, 2)}s`;
-      els.rawJson.textContent = JSON.stringify({ file: state.file?.name, media_type: state.mediaType, results, debug }, null, 2);
-
-      els.tableWrap.innerHTML = `
-        <table>
-          <thead>
-            <tr>
-              <th>模型</th><th>Backbone / 任务</th><th>MOS</th><th>Normalized</th><th>耗时</th><th>指标</th><th>状态</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${results.map(row => renderRow(row)).join("")}
-          </tbody>
-        </table>
-      `;
-    }
-
-    function renderRow(row) {
-      const mosText = Number.isFinite(row.mos) ? formatNumber(row.mos, 2) : "--";
-      const normText = Number.isFinite(row.normalized) ? formatNumber(row.normalized, 4) : "--";
-      const width = Number.isFinite(row.normalized) ? `${Math.round(clamp(row.normalized,0,1) * 100)}%` : "0%";
-      const latency = Number.isFinite(row.latencyMs) ? `${formatNumber(row.latencyMs / 1000, 2)}s` : "--";
-      const metrics = row.metrics || {};
-      const metricText = [
-        metrics.plcc !== null && metrics.plcc !== undefined ? `PLCC ${formatNumber(metrics.plcc, 3)}` : null,
-        metrics.srocc !== null && metrics.srocc !== undefined ? `SROCC ${formatNumber(metrics.srocc, 3)}` : null,
-        metrics.rmse !== null && metrics.rmse !== undefined ? `RMSE ${formatNumber(metrics.rmse, 3)}` : null
-      ].filter(Boolean).join(" · ") || "后端未返回";
-      return `
-        <tr>
-          <td><b>${escapeHtml(row.modelName)}</b><div class="small">请求参数：model=${escapeHtml(row.backendModel)}</div></td>
-          <td>${escapeHtml(row.backbone)} / ${escapeHtml(String(row.task).toUpperCase())}<div class="small">${escapeHtml(row.dataset || "")}</div></td>
-          <td><span class="mos">${mosText}</span><span class="small"> /5</span></td>
-          <td><div>${normText}</div><div class="bar"><i style="width:${width}"></i></div><div class="small">来源：${escapeHtml(row.sourceKey || "--")}</div></td>
-          <td>${latency}</td>
-          <td class="small">${escapeHtml(metricText)}</td>
-          <td><b>${escapeHtml(row.status)}</b><div class="small">${escapeHtml(row.note || "")}</div></td>
-        </tr>
-      `;
-    }
-
-    function resetResults() {
-      els.doneModels.textContent = "0";
-      els.avgMos.textContent = "--";
-      els.bestMos.textContent = "--";
-      els.totalLatency.textContent = "--";
-      els.rawJson.textContent = "尚无数据";
-      els.tableWrap.innerHTML = `<div class="empty">上传文件并选择至少两个模型后，点击“开始多模型真实评价”。</div>`;
-      setStatus(els.resultStatus, "等待评价", "warn");
-      els.progressWrap.style.display = "none";
-      setProgress(0, "准备请求");
-    }
-
-    function abortRequests() {
-      if (state.activeController) state.activeController.abort();
-    }
-
-    function addHistory(results, elapsedTotal) {
-      const valid = results.filter(r => Number.isFinite(r.mos));
-      const avg = valid.length ? average(valid.map(r => r.mos)) : null;
-      state.history.unshift({
-        fileName: state.file?.name || "未知文件",
-        mediaType: state.mediaType,
-        time: new Date().toISOString(),
-        models: results.map(r => ({ modelName: r.modelName, backendModel: r.backendModel, mos: r.mos, status: r.status })),
-        avgMos: avg,
+    function buildReportObject(samples, results, elapsedTotal) {
+      const successful = results.filter(item => Number.isFinite(item.mos));
+      const primary = successful.filter(item => item.sampleKey === "A");
+      const secondary = successful.filter(item => item.sampleKey === "B");
+      const avgA = primary.length ? average(primary.map(item => item.mos)) : null;
+      const avgB = secondary.length ? average(secondary.map(item => item.mos)) : null;
+      const allAvg = successful.length ? average(successful.map(item => item.mos)) : null;
+      const spread = primary.length >= 2 ? Math.max(...primary.map(item => item.mos)) - Math.min(...primary.map(item => item.mos)) : null;
+      const subjective = Number(ui.subjectiveRange.value);
+      const deltaSubjective = Number.isFinite(avgA) ? avgA - subjective : null;
+      const grade = getGrade(avgA ?? allAvg);
+      const localInsights = buildLocalInsights(samples[0] ? samples[0].sample : null);
+      const modelInsights = buildModelInsights(primary, spread);
+      const compareInsight = state.mode === "compare" && Number.isFinite(avgA) && Number.isFinite(avgB) ? buildCompareInsight(avgA, avgB) : null;
+      return {
+        createdAt: new Date().toISOString(),
+        mode: state.mode,
+        samples: samples.map(item => ({ key: item.key, label: item.label, name: item.sample.file.name, mediaType: item.sample.mediaType, size: item.sample.file.size, profile: item.sample.profile })),
+        results,
+        avgA,
+        avgB,
+        allAvg,
+        spread,
+        subjective,
+        deltaSubjective,
+        tags: Array.from(state.selectedTags),
+        note: ui.userNote.value.trim(),
+        grade,
+        localInsights,
+        modelInsights,
+        compareInsight,
         elapsedTotal
+      };
+    }
+
+    function renderReport(report) {
+      const score = report.avgA ?? report.allAvg;
+      const scoreText = Number.isFinite(score) ? formatNumber(score, 2) : "--";
+      const grade = report.grade;
+      const modelRows = report.results.map(row => renderResultRow(row)).join("");
+      const subjectiveText = Number.isFinite(report.deltaSubjective)
+        ? report.deltaSubjective >= 0 ? `模型比你的盲评高 ${formatNumber(report.deltaSubjective, 2)} 分` : `模型比你的盲评低 ${formatNumber(Math.abs(report.deltaSubjective), 2)} 分`
+        : "等待有效模型分数";
+      const compareBlock = report.compareInsight ? `
+        <div class="analysis-card"><b>A/B 对比</b><p>${escapeHtml(report.compareInsight)}</p></div>
+      ` : "";
+      ui.resultArea.innerHTML = `
+        <div class="result-hero">
+          <div class="score-card">
+            <div class="score-label">综合体验分</div>
+            <div class="score-main">${scoreText}</div>
+            <div class="score-caption">${escapeHtml(grade.summary)}</div>
+          </div>
+          <div class="passport">
+            <div class="passport-item"><span>质量等级</span><strong>${escapeHtml(grade.name)}</strong><p>${escapeHtml(grade.detail)}</p></div>
+            <div class="passport-item"><span>模型一致性</span><strong>${escapeHtml(report.modelInsights.level)}</strong><p>${escapeHtml(report.modelInsights.text)}</p></div>
+            <div class="passport-item"><span>主观盲评对比</span><strong>${formatNumber(report.subjective, 1)} / 5</strong><p>${escapeHtml(subjectiveText)}</p></div>
+            <div class="passport-item"><span>总耗时</span><strong>${formatNumber(report.elapsedTotal / 1000, 2)} 秒</strong><p>已完成 ${report.results.filter(item => Number.isFinite(item.mos)).length}/${report.results.length} 个评分任务。</p></div>
+          </div>
+        </div>
+        <div class="result-list">${modelRows}</div>
+        <div class="analysis-grid">
+          <div class="analysis-card"><b>媒体体检</b><p>${escapeHtml(report.localInsights)}</p></div>
+          <div class="analysis-card"><b>失真观察</b><p>${escapeHtml(report.tags.length ? report.tags.join("、") : "未手动标注明显失真。")}</p></div>
+          ${compareBlock || `<div class="analysis-card"><b>改进建议</b><p>${escapeHtml(buildAdvice(report))}</p></div>`}
+        </div>
+        <div class="insight-list">
+          ${renderInsights(report)}
+        </div>
+      `;
+      buildReportText(report);
+    }
+
+    function renderResultRow(row) {
+      const ok = Number.isFinite(row.mos);
+      const mos = ok ? formatNumber(row.mos, 2) : "--";
+      const width = ok ? `${Math.round(clamp(row.mos / 5, 0, 1) * 100)}%` : "0%";
+      const latency = Number.isFinite(row.latencyMs) ? `${formatNumber(row.latencyMs / 1000, 2)} 秒` : "未记录";
+      return `
+        <div class="result-card">
+          <div>
+            <div class="result-title">${escapeHtml(row.sampleLabel)} · ${escapeHtml(row.modelName)}</div>
+            <div class="result-meta">${escapeHtml(row.displayName)} · ${escapeHtml(row.mediaFocus)} · ${escapeHtml(row.status)} · ${latency}</div>
+            <div class="bar-wrap"><div class="bar-fill" style="width:${width}"></div></div>
+          </div>
+          <div class="result-score">${mos}</div>
+        </div>
+      `;
+    }
+
+    function renderInsights(report) {
+      const items = [];
+      items.push({ icon: "🧭", title: "评分口径", text: "分数越高代表主观体验质量越好，0–5 分更方便与人工 MOS 评价对应。" });
+      items.push({ icon: "🤝", title: "模型协同", text: report.modelInsights.text });
+      if (report.note) items.push({ icon: "📝", title: "你的备注", text: report.note });
+      if (report.compareInsight) items.push({ icon: "🔁", title: "对比结论", text: report.compareInsight });
+      items.push({ icon: "💡", title: "下一步建议", text: buildAdvice(report) });
+      return items.map(item => `
+        <div class="insight"><div class="insight-icon">${item.icon}</div><div><b>${escapeHtml(item.title)}</b><p>${escapeHtml(item.text)}</p></div></div>
+      `).join("");
+    }
+
+    function buildLocalInsights(sample) {
+      if (!sample || !sample.profile) return "浏览器未获取到本地媒体特征，仍可参考模型评分。";
+      const p = sample.profile;
+      const notes = [];
+      if (p.width && p.height) notes.push(`分辨率 ${p.width}×${p.height}`);
+      if (p.duration) notes.push(`时长约 ${formatNumber(p.duration, 1)} 秒`);
+      if (p.brightness !== undefined) {
+        if (p.brightness < 45) notes.push("整体偏暗");
+        else if (p.brightness > 215) notes.push("整体偏亮");
+        else notes.push("亮度处于常规区间");
+      }
+      if (p.contrast !== undefined) {
+        if (p.contrast < 22) notes.push("对比较低，画面可能发灰");
+        else if (p.contrast > 72) notes.push("对比较强，细节变化明显");
+      }
+      if (p.edgeEnergy !== undefined && p.edgeEnergy < 8) notes.push("边缘变化较弱，可能存在模糊感");
+      return notes.join("；") || "媒体基础信息正常。";
+    }
+
+    function buildModelInsights(rows, spread) {
+      if (!rows.length) return { level: "无有效结果", text: "当前没有得到可用于分析的模型分数。" };
+      if (spread === null || spread === undefined) return { level: "单模型结果", text: "当前有效分数不足两个，无法判断模型一致性。" };
+      if (spread <= 0.35) return { level: "高度一致", text: `两个模型分歧约 ${formatNumber(spread, 2)} 分，评分判断较稳定。` };
+      if (spread <= 0.85) return { level: "基本一致", text: `模型分歧约 ${formatNumber(spread, 2)} 分，可能分别关注到了空间细节与时序观感。` };
+      return { level: "存在分歧", text: `模型分歧约 ${formatNumber(spread, 2)} 分，建议结合人工观察进一步确认主要失真来源。` };
+    }
+
+    function buildCompareInsight(avgA, avgB) {
+      const delta = avgA - avgB;
+      if (Math.abs(delta) < 0.15) return `样本 A 与样本 B 的综合分非常接近，差异约 ${formatNumber(Math.abs(delta), 2)} 分。`;
+      return delta > 0 ? `样本 A 暂时优于样本 B，领先约 ${formatNumber(delta, 2)} 分。` : `样本 B 暂时优于样本 A，领先约 ${formatNumber(Math.abs(delta), 2)} 分。`;
+    }
+
+    function buildAdvice(report) {
+      const tags = new Set(report.tags);
+      const score = report.avgA ?? report.allAvg;
+      if (tags.has("模糊") || tags.has("主体不清")) return "可以优先检查对焦、压缩参数或增强算法是否造成边缘细节损失。";
+      if (tags.has("抖动") || tags.has("卡顿") || tags.has("拖影")) return "可以优先检查帧率、码率、运动补偿或采样过程，视频类失真通常会影响时序观感。";
+      if (tags.has("过曝") || tags.has("偏暗") || tags.has("颜色失真")) return "可以优先调整亮度、白平衡和色彩映射，让画面保持更自然的视觉分布。";
+      if (tags.has("压缩块") || tags.has("噪声")) return "可以尝试提高码率、降低压缩强度，或加入去噪与去块效应处理。";
+      if (Number.isFinite(score) && score >= 4.2) return "当前质量较好，可以保留作为高质量样本或展示样例。";
+      if (Number.isFinite(score) && score < 2.5) return "当前质量偏低，建议从清晰度、亮度、噪声和压缩伪影四个方向排查。";
+      return "建议结合模型分数、主观盲评和失真标签共同判断，不只依赖单一分数。";
+    }
+
+    function getGrade(score) {
+      if (!Number.isFinite(score)) return { name: "未评级", summary: "暂无有效分数", detail: "需要至少一个模型成功返回评分。" };
+      if (score >= 4.4) return { name: "优秀", summary: "画面质量优秀，主观观感较稳定", detail: "适合展示、保存或作为高质量样本。" };
+      if (score >= 3.6) return { name: "良好", summary: "整体质量良好，可能存在轻微失真", detail: "大多数场景下观感可接受。" };
+      if (score >= 2.8) return { name: "一般", summary: "质量处于中等水平，失真开始影响体验", detail: "建议结合标签定位具体问题。" };
+      if (score >= 1.8) return { name: "较差", summary: "明显失真影响观看体验", detail: "需要重点检查清晰度、噪声或压缩。" };
+      return { name: "严重失真", summary: "质量较低，不建议直接使用", detail: "建议重新采集、增强或调整编码参数。" };
+    }
+
+    function clearResult() {
+      state.lastReport = null;
+      state.lastReportText = "";
+      ui.reportBtn.disabled = true;
+      ui.presentationBtn.disabled = true;
+      ui.resultArea.innerHTML = `
+        <div class="empty-state"><div><div style="font-size:48px;margin-bottom:12px">✨</div><b>等待生成质量报告</b><p>上传样本并完成评估后，这里会显示综合 MOS、质量等级、模型一致性与改进建议。</p></div></div>
+      `;
+    }
+
+    function buildReportText(report) {
+      const score = report.avgA ?? report.allAvg;
+      const lines = [];
+      lines.push("# Deep-VQA 质量评估报告");
+      lines.push("");
+      lines.push(`生成时间：${new Date(report.createdAt).toLocaleString()}`);
+      lines.push(`评估模式：${report.mode === "compare" ? "A/B 对比" : "单样本评分"}`);
+      lines.push(`综合体验分：${Number.isFinite(score) ? formatNumber(score, 2) : "无有效分数"} / 5`);
+      lines.push(`质量等级：${report.grade.name}`);
+      lines.push("");
+      lines.push("## 样本信息");
+      report.samples.forEach(sample => {
+        const type = sample.mediaType === "image" ? "图片" : "视频";
+        const profile = sample.profile || {};
+        const dim = profile.width && profile.height ? `${profile.width}×${profile.height}` : "未知尺寸";
+        lines.push(`- ${sample.label}：${sample.name}，${type}，${formatBytes(sample.size)}，${dim}`);
       });
-      state.history = state.history.slice(0, 15);
+      lines.push("");
+      lines.push("## 模型评分");
+      report.results.forEach(row => {
+        lines.push(`- ${row.sampleLabel} / ${row.modelName}：${Number.isFinite(row.mos) ? formatNumber(row.mos, 2) : "无有效分数"} / 5（${row.status}）`);
+      });
+      lines.push("");
+      lines.push("## 主观盲评");
+      lines.push(`- 用户评分：${formatNumber(report.subjective, 1)} / 5`);
+      if (Number.isFinite(report.deltaSubjective)) lines.push(`- 模型与用户差异：${formatNumber(report.deltaSubjective, 2)} 分`);
+      lines.push(`- 失真标签：${report.tags.length ? report.tags.join("、") : "未标注"}`);
+      if (report.note) lines.push(`- 用户备注：${report.note}`);
+      lines.push("");
+      lines.push("## 分析结论");
+      lines.push(`- 模型一致性：${report.modelInsights.level}。${report.modelInsights.text}`);
+      if (report.compareInsight) lines.push(`- 对比结论：${report.compareInsight}`);
+      lines.push(`- 媒体体检：${report.localInsights}`);
+      lines.push(`- 建议：${buildAdvice(report)}`);
+      state.lastReportText = lines.join("\n");
+      return state.lastReportText;
+    }
+
+    function showReport() {
+      if (!state.lastReport) return;
+      ui.reportBox.textContent = state.lastReportText || buildReportText(state.lastReport);
+      openModal("reportModal");
+    }
+
+    function showPresentation() {
+      if (!state.lastReport) return;
+      const score = state.lastReport.avgA ?? state.lastReport.allAvg;
+      ui.presentationScore.textContent = Number.isFinite(score) ? formatNumber(score, 2) : "--";
+      ui.presentationCaption.textContent = state.lastReport.grade.summary;
+      ui.presentationText.textContent = `${state.lastReport.grade.name} · ${state.lastReport.modelInsights.level} · ${buildAdvice(state.lastReport)}`;
+      openModal("presentationModal");
+    }
+
+    function downloadReport() {
+      if (!state.lastReportText) return;
+      downloadText(`deep-vqa-report-${Date.now()}.md`, state.lastReportText);
+    }
+
+    async function copyReport() {
+      if (!state.lastReportText) return;
+      try {
+        await navigator.clipboard.writeText(state.lastReportText);
+        ui.copyReportBtn.textContent = "已复制";
+        setTimeout(() => ui.copyReportBtn.textContent = "复制文本", 1200);
+      } catch (error) {
+        showMessage(ui.messageBox, "复制失败，可以手动选择报告内容。", "error");
+      }
+    }
+
+    function addHistory(report) {
+      const score = report.avgA ?? report.allAvg;
+      state.history.unshift({
+        time: report.createdAt,
+        mode: report.mode,
+        score,
+        grade: report.grade.name,
+        fileName: report.samples.map(sample => sample.name).join(" / "),
+        models: report.results.map(row => ({ modelName: row.modelName, mos: row.mos, sampleLabel: row.sampleLabel }))
+      });
+      state.history = state.history.slice(0, 20);
       saveHistory();
       renderHistory();
     }
@@ -809,53 +1770,131 @@
       renderHistory();
     }
 
-    function saveHistory() { localStorage.setItem(STORAGE_HISTORY, JSON.stringify(state.history)); }
+    function saveHistory() {
+      localStorage.setItem(STORAGE_HISTORY, JSON.stringify(state.history));
+    }
 
     function renderHistory() {
       if (!state.history.length) {
-        els.historyList.innerHTML = `<div class="empty">暂无真实评价记录。</div>`;
+        ui.historyList.innerHTML = `<div class="empty-state" style="min-height:170px"><div><b>暂无历史记录</b><p>每次生成报告后会自动保存到这里。</p></div></div>`;
         return;
       }
-      els.historyList.innerHTML = state.history.map(item => {
-        const date = new Date(item.time).toLocaleString();
-        const modelText = item.models.map(m => `${m.backendModel}:${Number.isFinite(m.mos) ? formatNumber(m.mos,2) : "--"}`).join("，");
-        return `
-          <div class="history-item">
-            <div><strong>${escapeHtml(item.fileName)}</strong><div class="small">${escapeHtml(item.mediaType)} · ${date}<br>${escapeHtml(modelText)}</div></div>
-            <div class="mos">${Number.isFinite(item.avgMos) ? formatNumber(item.avgMos,2) : "--"}</div>
+      ui.historyList.innerHTML = state.history.map(item => `
+        <div class="history-item">
+          <div>
+            <div class="history-title">${escapeHtml(item.fileName)}</div>
+            <div class="history-meta">${new Date(item.time).toLocaleString()} · ${item.mode === "compare" ? "A/B 对比" : "单样本"} · ${escapeHtml(item.grade)}</div>
           </div>
-        `;
-      }).join("");
+          <div class="history-score">${Number.isFinite(item.score) ? formatNumber(item.score, 2) : "--"}</div>
+        </div>
+      `).join("");
+    }
+
+    function exportHistory() {
+      downloadText(`deep-vqa-history-${Date.now()}.json`, JSON.stringify(state.history, null, 2));
+    }
+
+    function clearHistory() {
+      state.history = [];
+      saveHistory();
+      renderHistory();
+    }
+
+    function loadServiceConfig() {
+      const saved = safeJson(localStorage.getItem(STORAGE_CONFIG), {});
+      ui.serviceBaseInput.value = saved.base || "http://127.0.0.1:8000";
+      ui.servicePathInput.value = saved.path || "/evaluate";
+    }
+
+    function getServiceConfig() {
+      const base = (ui.serviceBaseInput.value || "http://127.0.0.1:8000").trim().replace(/\/$/, "");
+      const path = normalizePath(ui.servicePathInput.value || "/evaluate");
+      return { base, path };
+    }
+
+    function saveServiceConfig() {
+      const config = getServiceConfig();
+      localStorage.setItem(STORAGE_CONFIG, JSON.stringify(config));
+      showMessage(ui.serviceMessage, "设置已保存。", "success");
+    }
+
+    async function checkService() {
+      const config = getServiceConfig();
+      setServiceStatus("检测中", "");
+      showMessage(ui.serviceMessage, "正在检测评分服务连接。", "info");
+      try {
+        const response = await fetch(`${config.base}/health`, { method: "GET" });
+        if (response.ok) {
+          setServiceStatus("已连接", "ok");
+          showMessage(ui.serviceMessage, "连接成功，可以开始评估。", "success");
+        } else {
+          setServiceStatus("可访问", "ok");
+          showMessage(ui.serviceMessage, "服务地址可访问，若评估按钮可正常返回结果即可使用。", "success");
+        }
+      } catch (error) {
+        setServiceStatus("连接失败", "fail");
+        showMessage(ui.serviceMessage, "暂时无法连接，请确认评分服务已经启动。", "error");
+      }
+    }
+
+    function setServiceStatus(text, type) {
+      ui.serviceStatus.className = `status-line ${type}`;
+      ui.serviceStatus.innerHTML = `<span class="status-dot"></span>${escapeHtml(text)}`;
+    }
+
+    function cancelEvaluation() {
+      if (state.currentController) state.currentController.abort();
     }
 
     function setProgress(percent, text) {
       const p = clamp(percent, 0, 100);
-      els.progressFill.style.width = `${p}%`;
-      els.progressPercent.textContent = `${Math.round(p)}%`;
-      els.progressText.textContent = text;
+      ui.progressFill.style.width = `${p}%`;
+      ui.progressPercent.textContent = `${Math.round(p)}%`;
+      ui.progressText.textContent = text;
     }
 
-    function setStatus(el, text, type) {
-      el.className = `status-pill ${type === "ok" ? "ok" : type === "fail" ? "fail" : ""}`;
-      el.innerHTML = `<span class="dot"></span>${escapeHtml(text)}`;
+    function showMessage(el, text, type) {
+      el.className = `message show ${type}`;
+      el.textContent = text;
     }
 
-    function showMessage(text, type="info") {
-      els.message.className = `message ${type}`;
-      els.message.textContent = text;
+    function openModal(id) {
+      $(id).classList.add("show");
+      $(id).setAttribute("aria-hidden", "false");
+    }
+
+    function closeModal(id) {
+      $(id).classList.remove("show");
+      $(id).setAttribute("aria-hidden", "true");
+    }
+
+    function setTab(name) {
+      document.querySelectorAll(".tab").forEach(tab => tab.classList.toggle("active", tab.dataset.tab === name));
+      document.querySelectorAll(".tab-panel").forEach(panel => panel.classList.toggle("active", panel.id === `tab-${name}`));
+    }
+
+    function humanizeError(text) {
+      if (!text) return "评分失败";
+      if (/failed to fetch/i.test(text)) return "无法连接评分服务";
+      if (/invalid|decode|解码|颜色|格式/.test(text)) return "文件可能无法被正确解析";
+      return text;
+    }
+
+    function downloadText(filename, text) {
+      const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
     }
 
     function normalizePath(path) {
-      if (!path) return "/evaluate";
-      return path.startsWith("/") ? path : `/${path}`;
-    }
-
-    function pickText(obj, keys) {
-      for (const key of keys) {
-        const value = obj?.[key];
-        if (typeof value === "string" && value.trim()) return value.trim();
-      }
-      return "";
+      const clean = String(path || "/evaluate").trim();
+      return clean.startsWith("/") ? clean : `/${clean}`;
     }
 
     function toNumber(value) {
@@ -868,19 +1907,40 @@
       return null;
     }
 
-    function average(nums) { return nums.reduce((a,b) => a + b, 0) / nums.length; }
-    function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
-    function formatNumber(value, digits=2) { return Number(value).toFixed(digits); }
+    function average(values) {
+      return values.reduce((sum, value) => sum + value, 0) / values.length;
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function formatNumber(value, digits) {
+      return Number(value).toFixed(digits);
+    }
+
     function formatBytes(bytes) {
       if (!Number.isFinite(bytes)) return "--";
       const units = ["B", "KB", "MB", "GB"];
-      let size = bytes, idx = 0;
-      while (size >= 1024 && idx < units.length - 1) { size /= 1024; idx++; }
-      return `${size.toFixed(idx === 0 ? 0 : 2)} ${units[idx]}`;
+      let size = bytes;
+      let index = 0;
+      while (size >= 1024 && index < units.length - 1) {
+        size /= 1024;
+        index += 1;
+      }
+      return `${size.toFixed(index === 0 ? 0 : 2)} ${units[index]}`;
     }
-    function safeJson(text, fallback) { try { return text ? JSON.parse(text) : fallback; } catch { return fallback; } }
+
+    function safeJson(text, fallback) {
+      try {
+        return text ? JSON.parse(text) : fallback;
+      } catch (error) {
+        return fallback;
+      }
+    }
+
     function escapeHtml(value) {
-      return String(value ?? "").replace(/[&<>'"]/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;","\"":"&quot;"}[ch]));
+      return String(value ?? "").replace(/[&<>'"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", "\"": "&quot;" }[char]));
     }
   </script>
 </body>
